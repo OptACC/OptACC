@@ -110,7 +110,7 @@ def tune(opts):
         if x[0] < opts.num_gangs_min or x[0] > opts.num_gangs_max:
             return float('+inf')
 
-        if x[1] < opts.vector_length_min or x[1] > opts.num_gangs_max:
+        if x[1] < opts.vector_length_min or x[1] > opts.vector_length_max:
             return float('+inf')
 
         return run_test(x[0], x[1], repetitions=opts.repetitions)
