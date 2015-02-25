@@ -18,6 +18,9 @@ class Point(object):
 
         return self.coords == other.coords
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __len__(self):
         return len(self.coords)
 
@@ -126,10 +129,17 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
 
     iterations = 1
     while iterations < maxiter:
-        # TODO: Add an acceptable convergence exit condition like scipy has
-        #if (numpy.max(numpy.ravel(numpy.abs(sim[1:] - sim[0]))) <= xtol and
-        #        numpy.max(numpy.abs(fsim[0] - fsim[1:])) <= ftol):
-        #    break
+        # Test for convergence
+        # If every point in the simplex is the same, the algorithm terminates
+        x0 = simplex[0]
+        converged = True
+        for xi in simplex[1:]:
+            if xi != x0:
+                converged = False
+                break
+
+        if converged:
+            break
 
         # Step 1: Order simplex by objective value
         simplex = list(sorted(simplex, key=f))
