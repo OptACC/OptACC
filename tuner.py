@@ -148,6 +148,7 @@ def tune(opts):
             point[0], point[1], time))
     print('--------------')
     print('Tested {0} points'.format(len(res.tests)))
+    print('Nelder-Mead took {0} iterations'.format(res.num_iterations))
     print('Optimal result: num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
             'time {2:.4f}'.format(res.optimal[0], res.optimal[1],
                 res.tests[res.optimal]))

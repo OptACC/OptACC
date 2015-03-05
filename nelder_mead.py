@@ -74,7 +74,8 @@ class Point(object):
     def __repr__(self):
         return self.__str__()
 
-NelderMeadResult = namedtuple('NelderMeadResult', ['optimal', 'tests'])
+NelderMeadResult = namedtuple('NelderMeadResult', ['optimal', 'tests',
+        'num_iterations'])
 
 def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
     '''Optimizes the objective function using a modified Nelder-Mead algorithm.
@@ -130,12 +131,13 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
     iterations = 1
     while iterations < maxiter:
         # Test for convergence
-        # If every point in the simplex is the same, the algorithm terminates
+        # If the optimal point appears multiple times in the simplex, the
+        # algorithm terminates
         x0 = simplex[0]
-        converged = True
+        converged = False
         for xi in simplex[1:]:
-            if xi != x0:
-                converged = False
+            if xi == x0:
+                converged = True
                 break
 
         if converged:
@@ -203,7 +205,7 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
                     shrink()
 
         iterations += 1
-    return NelderMeadResult(simplex[0], eval_cache)
+    return NelderMeadResult(simplex[0], eval_cache, iterations)
 
 def round_acc(x):
     num_gangs = round(x[0] / 32.0) * 32.0
