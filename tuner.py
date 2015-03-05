@@ -2,6 +2,7 @@
 from __future__ import print_function
 import re
 import subprocess
+import os
 from nelder_mead import *
 
 # Default compilation command
@@ -16,11 +17,19 @@ KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
         r'(?:[^\n]*\n){2}'
         r'\s*time\(us\): ([\d,]+)')
 
-def check_output(cmd):
-    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+def check_output(cmd, env=None):
+    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
             stderr=subprocess.PIPE, shell=True)
     stdout, stderr = handle.communicate()
     return stdout.encode('utf8'), (stderr.encode('utf8') if stderr else '')
+
+def check_call(cmd, env=None):
+    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
+            stderr=subprocess.STDOUT, shell=True)
+    stdout, _ = handle.communicate()
+    if handle.returncode != 0:
+        raise subprocess.CalledProcessError(handle.returncode, cmd, stdout)
+    return handle.returncode
 
 class TuningOptions(object):
     ''' Represents a set of options and constraints for tuning '''
@@ -67,9 +76,21 @@ def gen_tuning_function(opts):
                 vector_length=vector_length
         )
 
+        # Set NUM_GANGS and VECTOR_LENGTH as environment variables so that
+        # Makefiles can make use of these parameters.
+        env = {
+            'NUM_GANGS': str(num_gangs),
+            'VECTOR_LENGTH': str(vector_length)
+        }
+
+        # Copy environment variables for this process.  This is necessary to
+        # preserve $PATH and other variables that might be necessary for
+        # compilation.
+        env.update(os.environ)
+
         if opts.verbose:
             print('[{0}, {1}] {2}'.format(num_gangs, vector_length, command))
-        subprocess.check_call(command, shell=True)
+        check_call(command, env=env)
 
         results = []
         for i in range(repetitions):
@@ -82,17 +103,18 @@ def gen_tuning_function(opts):
                 match = KERNEL_TIMING_RE.search(stderr)
                 if not match:
                     raise RuntimeError('Output from executable {0} did not '
-                            'contain kernel timing data.'.format(
-                                opts.executable))
+                            'contain kernel timing data: {1}\n{2}'.format(
+                                opts.executable, stdout, stderr))
 
                 time = float(match.group(1).replace(',', '')) * 1e-6
             else:
                 match = opts.time_regexp.search(stdout)
                 if not match:
                     raise RuntimeError('Output from executable {0} did not '
-                            'contain any matches for the time regex {1}: {2}'
-                            .format(opts.executable, opts.time_regexp.pattern,
-                            result))
+                            'contain any matches for the time regex {1}: {2}\n'
+                            '{3}'.format(opts.executable,
+                                    opts.time_regexp.pattern,
+                                    stdout, stderr))
 
                 time = match.group(1)
             if opts.verbose:
@@ -158,8 +180,13 @@ def main():
     if args.verbose:
         print('TuningOptions: {0}'.format(t.__dict__))
 
-    tune(t)
-
+    try:
+        tune(t)
+    except subprocess.CalledProcessError as e:
+        print(e)
+        if e.output:
+            print(e.output)
+        print('Aborting')
 
 if __name__ == '__main__':
     main()
