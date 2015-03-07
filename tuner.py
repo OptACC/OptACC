@@ -39,9 +39,9 @@ class TuningOptions(object):
             compile_command=None, # None here implies use of default
             repetitions=10,
             time_regexp=TIME_RE,
-            num_gangs_min=1,
+            num_gangs_min=2,
             num_gangs_max=1024,
-            vector_length_min=1,
+            vector_length_min=2,
             vector_length_max=1024,
             verbose=False,
             kernel_timing=False):
