@@ -27,7 +27,7 @@ def check_call(cmd, env=None):
     handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
             stderr=subprocess.STDOUT, shell=True)
     stdout, _ = handle.communicate()
-    if handle.returncode == 0:
+    if handle.returncode != 0:
         err = subprocess.CalledProcessError(handle.returncode, cmd)
         # workaround since CalledProcessError does not accept output in the
         # constructor in Python 2.6
