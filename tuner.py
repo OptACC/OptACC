@@ -27,8 +27,12 @@ def check_call(cmd, env=None):
     handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
             stderr=subprocess.STDOUT, shell=True)
     stdout, _ = handle.communicate()
-    if handle.returncode != 0:
-        raise subprocess.CalledProcessError(handle.returncode, cmd, stdout)
+    if handle.returncode == 0:
+        err = subprocess.CalledProcessError(handle.returncode, cmd)
+        # workaround since CalledProcessError does not accept output in the
+        # constructor in Python 2.6
+        err.output = stdout
+        raise err
     return handle.returncode
 
 class TuningOptions(object):
