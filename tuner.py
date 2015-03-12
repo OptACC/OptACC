@@ -4,6 +4,7 @@ import re
 import subprocess
 import os
 from nelder_mead import *
+from exhaustive_search import *
 
 # Default compilation command
 PGCC_COMPILE = ('pgcc -acc -DNUM_GANGS={num_gangs} '
@@ -41,6 +42,7 @@ class TuningOptions(object):
             source,
             executable='./a.out',
             compile_command=None, # None here implies use of default
+            search_method='nelder-mead',
             repetitions=10,
             time_regexp=TIME_RE,
             num_gangs_min=2,
@@ -58,6 +60,7 @@ class TuningOptions(object):
             self.compile_command = PGCC_COMPILE_KERNEL_TIMING
         else:
             self.compile_command = PGCC_COMPILE
+        self.search_method = search_method
         self.repetitions = repetitions
         self.time_regexp = re.compile(time_regexp, re.I)
         self.num_gangs_min = num_gangs_min
@@ -142,17 +145,32 @@ def tune(opts):
 
         return run_test(x[0], x[1], repetitions=opts.repetitions)
 
-    # Set initial guess to what the compiler usually assumes
-    # num_gangs(256) vector_length(128)
-    init = Point(256, 128)
-    res = nelder_mead(objective, init, neighbors_acc, round_acc)
+    if opts.search_method == 'nelder-mead':
+        # Set initial guess to what the compiler usually assumes
+        # num_gangs(256) vector_length(128)
+        init = Point(256, 128)
+        res = nelder_mead(objective, init, neighbors_acc, round_acc)
+    elif opts.search_method == 'exhaustive':
+        # Exhaustive search: search powers of 2 within gang/vector ranges
+        def generator():
+            gmin = int(math.floor(math.log(opts.num_gangs_min, 2)))
+            gmax = int(math.floor(math.log(opts.num_gangs_max, 2)+1))
+            vmin = int(math.floor(math.log(opts.vector_length_min, 2)))
+            vmax = int(math.floor(math.log(opts.vector_length_max, 2)+1))
+            for gang_pow2 in range(gmin, gmax):
+                for vec_pow2 in range(vmin, vmax):
+                    yield Point(1 << gang_pow2, 1 << vec_pow2)
+        res = exhaustive_search(objective, generator())
+    else:
+        raise RuntimeError('Unknown search method "{0}"'.format(opts.search_method))
+
     for point in reversed(sorted(res.tests, key=lambda x: res.tests[x])):
         time = res.tests[point]
         print('num_gangs={0:<6.0f} vector_length={1:<6.0f} => time {2:.4f}'.format(
             point[0], point[1], time))
     print('--------------')
     print('Tested {0} points'.format(len(res.tests)))
-    print('Nelder-Mead took {0} iterations'.format(res.num_iterations))
+    print('Search took {0} iterations'.format(res.num_iterations))
     print('Optimal result: num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
             'time {2:.4f}'.format(res.optimal[0], res.optimal[1],
                 res.tests[res.optimal]))
@@ -164,6 +182,7 @@ def main():
     parser.add_argument('source', type=str)
     parser.add_argument('-e', '--executable', type=str)
     parser.add_argument('-c', '--compile-command', type=str)
+    parser.add_argument('-s', '--search-method', type=str)
     parser.add_argument('-r', '--repetitions', type=int)
     parser.add_argument('-t', '--time-regexp', type=str)
     parser.add_argument('-k', '--kernel-timing', action='store_true')
