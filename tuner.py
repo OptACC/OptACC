@@ -4,7 +4,7 @@ import re
 import subprocess
 import os
 from nelder_mead import *
-from exhaustive_search import *
+from exhaustive_search import exhaustive_search
 
 # Default compilation command
 PGCC_COMPILE = ('pgcc -acc -DNUM_GANGS={num_gangs} '
@@ -162,13 +162,15 @@ def tune(opts):
         res = nelder_mead(objective, init, neighbors_acc, round_acc)
     elif opts.search_method == 'exhaustive':
         # Exhaustive search: search powers of 2 within gang/vector ranges
+	def ilog2(x):
+            return int(math.floor(math.log(x, 2)))
         def generator():
-            gmin = int(math.floor(math.log(opts.num_gangs_min, 2)))
-            gmax = int(math.floor(math.log(opts.num_gangs_max, 2)+1))
-            vmin = int(math.floor(math.log(opts.vector_length_min, 2)))
-            vmax = int(math.floor(math.log(opts.vector_length_max, 2)+1))
-            for gang_pow2 in range(gmin, gmax):
-                for vec_pow2 in range(vmin, vmax):
+            gmin = ilog2(opts.num_gangs_min)
+            gmax = ilog2(opts.num_gangs_max)
+            vmin = ilog2(opts.vector_length_min)
+            vmax = ilog2(opts.vector_length_max)
+            for gang_pow2 in range(gmin, gmax+1): # +1 since range is exclusive
+                for vec_pow2 in range(vmin, vmax+1):
                     yield Point(1 << gang_pow2, 1 << vec_pow2)
         res = exhaustive_search(objective, generator())
     else:
