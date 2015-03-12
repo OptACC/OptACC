@@ -21,7 +21,7 @@ def check_output(cmd, env=None):
     handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
             stderr=subprocess.PIPE, shell=True)
     stdout, stderr = handle.communicate()
-    return stdout.encode('utf8'), (stderr.encode('utf8') if stderr else '')
+    return stdout.encode('utf8'), (stderr.encode('utf8') if stderr else ''), handle.returncode
 
 def check_call(cmd, env=None):
     handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
@@ -48,6 +48,7 @@ class TuningOptions(object):
             vector_length_min=2,
             vector_length_max=1024,
             verbose=False,
+            ignore_exit=False,
             kernel_timing=False):
 
         self.source = source
@@ -65,6 +66,7 @@ class TuningOptions(object):
         self.vector_length_min = vector_length_min
         self.vector_length_max = vector_length_max
         self.verbose = verbose
+        self.ignore_exit = ignore_exit
         self.kernel_timing = kernel_timing
 
 # From a set of tuning options, return a function that when called with a
@@ -101,7 +103,12 @@ def gen_tuning_function(opts):
             if opts.verbose:
                 print('[{0}, {1}] {2}'.format(num_gangs, vector_length,
                         opts.executable), end=' ')
-            stdout, stderr = check_output(opts.executable)
+            stdout, stderr, return_code = check_output(opts.executable)
+
+            if return_code != 0 and not opts.ignore_exit:
+                if opts.verbose:
+                    print('-> Failed (exit code {0})'.format(return_code))
+                break  # Don't record time; assume subsequent reps will fail
 
             if opts.kernel_timing:
                 match = KERNEL_TIMING_RE.search(stderr)
@@ -115,8 +122,8 @@ def gen_tuning_function(opts):
                 match = opts.time_regexp.search(stdout)
                 if not match:
                     raise RuntimeError('Output from executable {0} did not '
-                            'contain any matches for the time regex {1}: {2}\n'
-                            '{3}'.format(opts.executable,
+                            'contain any matches for the time regex {1}: '
+                            '{2}\n{3}'.format(opts.executable,
                                     opts.time_regexp.pattern,
                                     stdout, stderr))
 
@@ -125,7 +132,10 @@ def gen_tuning_function(opts):
                 print(time)
             results.append(float(time))
 
-        return sum(results) / len(results)
+        if len(results) == 0:  # Executable terminated with nonzero exit code
+            return float('+inf')
+        else:
+            return sum(results) / len(results)
     return fn
 
 def tune(opts):
@@ -172,6 +182,7 @@ def main():
     parser.add_argument('--vector-length-min', type=int)
     parser.add_argument('--vector-length-max', type=int)
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-x', '--ignore-exit', action='store_true')
 
     args = parser.parse_args()
 
