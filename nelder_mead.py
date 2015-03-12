@@ -81,8 +81,10 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
     '''Optimizes the objective function using a modified Nelder-Mead algorithm.
 
     Arguments:
-    objective -- the objective function to optimize.  Should take a Point as
-                 input and return a numeric (int or float) value.
+    objective -- the objective function to optimize.  Receives a Point as input
+                 and returns a pair (x, s), where x is a numeric (int or float)
+                 value representing the average runtime and s is the standard
+                 deviation of the runtimes.
     initial -- A Point representing the initial point to test.
     neighbors -- a function that accepts a Point and returns an iterable of
                  Points neighboring the input.
@@ -102,7 +104,8 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
         if point not in eval_cache:
             eval_cache[point] = objective(point)
 
-        return eval_cache[point]
+        avg, stdev = eval_cache[point]
+        return avg
 
     N = len(initial)
     RHO = 1

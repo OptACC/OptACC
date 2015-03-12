@@ -136,9 +136,15 @@ def gen_tuning_function(opts):
             results.append(float(time))
 
         if len(results) == 0:  # Executable terminated with nonzero exit code
-            return float('+inf')
+            return (float('+inf'), float('+inf'))
         else:
-            return sum(results) / len(results)
+            n = len(results)
+            avg = sum(results) / n
+            stdev = math.sqrt(sum((x-avg)**2 for x in results) / float(n-1))
+            if opts.verbose:
+                print('[{0}, {1}] average: {2:.4f} stdev: {3:.4f}'
+                    .format(num_gangs, vector_length, avg, stdev))
+            return (avg, stdev)
     return fn
 
 def tune(opts):
@@ -162,7 +168,7 @@ def tune(opts):
         res = nelder_mead(objective, init, neighbors_acc, round_acc)
     elif opts.search_method == 'exhaustive':
         # Exhaustive search: search powers of 2 within gang/vector ranges
-	def ilog2(x):
+        def ilog2(x):
             return int(math.floor(math.log(x, 2)))
         def generator():
             gmin = ilog2(opts.num_gangs_min)
@@ -177,15 +183,17 @@ def tune(opts):
         raise RuntimeError('Unknown search method "{0}"'.format(opts.search_method))
 
     for point in reversed(sorted(res.tests, key=lambda x: res.tests[x])):
-        time = res.tests[point]
-        print('num_gangs={0:<6.0f} vector_length={1:<6.0f} => time {2:.4f}'.format(
-            point[0], point[1], time))
+        avg_time, stdev = res.tests[point]
+        print('num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
+            'time {2:.4f} (stdev={3:.4f})'.format(
+            point[0], point[1], avg_time, stdev))
     print('--------------')
     print('Tested {0} points'.format(len(res.tests)))
     print('Search took {0} iterations'.format(res.num_iterations))
     print('Optimal result: num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
-            'time {2:.4f}'.format(res.optimal[0], res.optimal[1],
-                res.tests[res.optimal]))
+            'time {2:.4f} (stdev {3:.4f})'
+            .format(res.optimal[0], res.optimal[1],
+            res.tests[res.optimal][0], res.tests[res.optimal][1]))
 
 def main():
     import argparse
