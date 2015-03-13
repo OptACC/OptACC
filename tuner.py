@@ -140,7 +140,7 @@ def gen_tuning_function(opts):
         else:
             n = len(results)
             avg = sum(results) / n
-            stdev = math.sqrt(sum((x-avg)**2 for x in results) / float(n-1))
+            stdev = 0 if n == 1 else math.sqrt(sum((x-avg)**2 for x in results) / float(n-1))
             if opts.verbose:
                 print('[{0}, {1}] average: {2:.4f} stdev: {3:.4f}'
                     .format(num_gangs, vector_length, avg, stdev))
