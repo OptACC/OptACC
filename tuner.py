@@ -1,11 +1,14 @@
 #!/usr/bin/python
-from __future__ import print_function
+import logging
+import os
 import re
 import subprocess
-import os
+
 from nelder_mead import *
 from exhaustive_search import exhaustive_search
 from utilities import call_command
+
+LOGGER = logging.getLogger('tuner')
 
 # Default compilation command
 PGCC_COMPILE = ('pgcc -acc -DNUM_GANGS={num_gangs} '
@@ -34,7 +37,8 @@ class TuningOptions(object):
             vector_length_max=1024,
             verbose=False,
             ignore_exit=False,
-            kernel_timing=False):
+            kernel_timing=False,
+            **kwargs):
 
         self.source = source
         self.executable = executable
@@ -80,59 +84,68 @@ def gen_tuning_function(opts):
         # compilation.
         env.update(os.environ)
 
-        if opts.verbose:
-            print('[{0}, {1}] {2}'.format(num_gangs, vector_length, command))
+        prefix = '[num_gangs={0}, vector_length={1}]'.format(num_gangs,
+                vector_length)
 
-        c_stdout, c_stderr, returncode = call_command(command, env=env)
-        if returncode != 0:
-            print('[{0}, {1}] Compile command exit with code {2}.  Ignoring'
-                  ' this point.'.format(
-                    num_gangs, vector_length, returncode))
+        LOGGER.debug('%s Compiling: %s', prefix, command)
+
+        output, return_code = call_command(command, env=env)
+        if return_code != 0:
+            LOGGER.error('%s Compile command failed with exit code %d.  '
+                    'Skipping this point.  (Compiler output was: %s)',
+                    prefix, return_code, output)
+            # Compiler failed, cannot continue
             return float('+inf'), float('+inf')
 
         results = []
         for i in range(repetitions):
-            if opts.verbose:
-                print('[{0}, {1}] {2}'.format(num_gangs, vector_length,
-                        opts.executable), end=' ')
-            stdout, stderr, return_code = call_command(opts.executable)
+            LOGGER.debug('%s Running %s', prefix, opts.executable)
+            output, return_code = call_command(opts.executable)
 
             if return_code != 0 and not opts.ignore_exit:
-                if opts.verbose:
-                    print('-> Failed (exit code {0})'.format(return_code))
+                LOGGER.error('%s Command %s failed with exit code %d', prefix,
+                        opts.executable, return_code)
                 break  # Don't record time; assume subsequent reps will fail
 
             if opts.kernel_timing:
-                match = KERNEL_TIMING_RE.search(stderr)
+                match = KERNEL_TIMING_RE.search(output)
                 if not match:
-                    raise RuntimeError('Output from executable {0} did not '
-                            'contain kernel timing data: {1}\n{2}'.format(
-                                opts.executable, stdout, stderr))
+                    LOGGER.error('%s Output from %s did not contain PGI '
+                            'kernel timing data.  This is likely a problem '
+                            'with your program or compile command.  The '
+                            'output was: %s', prefix, opts.executable, output)
+                    return float('+inf'), float('+inf')
 
                 time = float(match.group(1).replace(',', '')) * 1e-6
             else:
-                match = opts.time_regexp.search(stdout)
+                match = opts.time_regexp.search(output)
                 if not match:
-                    raise RuntimeError('Output from executable {0} did not '
-                            'contain any matches for the time regex {1}: '
-                            '{2}\n{3}'.format(opts.executable,
-                                    opts.time_regexp.pattern,
-                                    stdout, stderr))
+                    LOGGER.error('%s Output from %s did not contain timing '
+                            ' data.  This is likely a problem with your '
+                            'program or output regex "%s".  The '
+                            'output was: %s', prefix, opts.executable,
+                            opts.time_regexp.pattern, output)
+                    return float('+inf'), float('+inf')
 
                 time = match.group(1)
-            if opts.verbose:
-                print(time)
-            results.append(float(time))
+
+            time = float(time)
+            LOGGER.debug('%s Time: %f', prefix, time)
+            results.append(time)
 
         if len(results) == 0:  # Executable terminated with nonzero exit code
             return (float('+inf'), float('+inf'))
         else:
             n = len(results)
             avg = sum(results) / n
-            stdev = 0 if n == 1 else math.sqrt(sum((x-avg)**2 for x in results) / float(n-1))
-            if opts.verbose:
-                print('[{0}, {1}] average: {2:.4f} stdev: {3:.4f}'
-                    .format(num_gangs, vector_length, avg, stdev))
+            if n == 1: # Avoid ZeroDivisionError
+                stdev = 0
+            else:
+                stdev = math.sqrt(
+                        sum((x - avg)**2 for x in results) / float(n - 1))
+
+            LOGGER.info('%s Average: %.4f, Standard Deviation: %.4f', prefix,
+                    avg, stdev)
             return (avg, stdev)
     return fn
 
@@ -143,10 +156,10 @@ def tune(opts):
         x = map(int, x)
 
         if x[0] < opts.num_gangs_min or x[0] > opts.num_gangs_max:
-            return float('+inf')
+            return float('+inf'), float('+inf')
 
         if x[1] < opts.vector_length_min or x[1] > opts.vector_length_max:
-            return float('+inf')
+            return float('+inf'), float('+inf')
 
         return run_test(x[0], x[1], repetitions=opts.repetitions)
 
@@ -169,20 +182,20 @@ def tune(opts):
                     yield Point(1 << gang_pow2, 1 << vec_pow2)
         res = exhaustive_search(objective, generator())
     else:
-        raise RuntimeError('Unknown search method "{0}"'.format(opts.search_method))
+        raise RuntimeError('Unknown search method "{0}"'.format(
+                opts.search_method))
 
-    for point in reversed(sorted(res.tests, key=lambda x: res.tests[x])):
+    LOGGER.info('-- RESULTS --')
+    for point in sorted(res.tests, key=lambda x: res.tests[x], reverse=True):
         avg_time, stdev = res.tests[point]
-        print('num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
-            'time {2:.4f} (stdev={3:.4f})'.format(
-            point[0], point[1], avg_time, stdev))
-    print('--------------')
-    print('Tested {0} points'.format(len(res.tests)))
-    print('Search took {0} iterations'.format(res.num_iterations))
-    print('Optimal result: num_gangs={0:<6.0f} vector_length={1:<6.0f} => '
-            'time {2:.4f} (stdev {3:.4f})'
-            .format(res.optimal[0], res.optimal[1],
-            res.tests[res.optimal][0], res.tests[res.optimal][1]))
+        LOGGER.info('num_gangs=%-4.0f vector_length=%-4.0f => time %.4f '
+                '(stdev=%.4f)', point[0], point[1], avg_time, stdev)
+    LOGGER.info('-------------')
+    LOGGER.info('Tested %d points', len(res.tests))
+    LOGGER.info('Search took %d iterations', res.num_iterations)
+    LOGGER.info('Optimal result: num_gangs=%-4.0f vector_length=%-4.0f => '
+            'time %.4f (stdev %.4f)', res.optimal[0], res.optimal[1],
+            res.tests[res.optimal][0], res.tests[res.optimal][1])
 
 def main():
     import argparse
@@ -195,6 +208,7 @@ def main():
     parser.add_argument('-r', '--repetitions', type=int)
     parser.add_argument('-t', '--time-regexp', type=str)
     parser.add_argument('-k', '--kernel-timing', action='store_true')
+    parser.add_argument('-l', '--logfile', type=str)
     parser.add_argument('--num-gangs-min', type=int)
     parser.add_argument('--num-gangs-max', type=int)
     parser.add_argument('--vector-length-min', type=int)
@@ -211,16 +225,21 @@ def main():
 
     t = TuningOptions(**kwargs)
 
-    if args.verbose:
-        print('TuningOptions: {0}'.format(t.__dict__))
+    LOGGER.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Set up console logger
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    LOGGER.addHandler(console)
 
-    try:
-        tune(t)
-    except subprocess.CalledProcessError as e:
-        print(e)
-        if e.output:
-            print(e.output)
-        print('Aborting')
+    # Set up logfile if specified
+    if args.logfile:
+        file_log = logging.FileHandler(args.logfile)
+        file_log.setFormatter(formatter)
+        LOGGER.addHandler(file_log)
+
+    LOGGER.debug('TuningOptions: %s', t.__dict__)
+    tune(t)
 
 if __name__ == '__main__':
     main()

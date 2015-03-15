@@ -11,20 +11,20 @@ def call_command(cmd, env=None, fail_on_nonzero=False):
         fail_on_nonzero -- if True, an exception will be raised if the return
                            code of the called command is nonzero.
 
-        Returns a tuple (stdout, stderr, returncode)
+        Returns a tuple (output, returncode)
     '''
 
     handle = subprocess.Popen(cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT, # Redirect stderr to stdout
             env=env,
             shell=True)
 
-    stdout, stderr = handle.communicate()
+    stdout, _ = handle.communicate()
 
     if handle.returncode != 0 and fail_on_nonzero:
         err = subprocess.CalledProcessError(handle.returncode, cmd)
-        err.output = '\n'.join(stdout, stderr)
+        err.output = stdout
         raise err
 
-    return stdout, stderr, handle.returncode
+    return stdout, handle.returncode
