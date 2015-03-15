@@ -5,6 +5,7 @@ import subprocess
 import os
 from nelder_mead import *
 from exhaustive_search import exhaustive_search
+from utilities import call_command
 
 # Default compilation command
 PGCC_COMPILE = ('pgcc -acc -DNUM_GANGS={num_gangs} '
@@ -17,24 +18,6 @@ TIME_RE = r'(?:time)[=:\s]*([\d.]+)'
 KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
         r'(?:[^\n]*\n){2}'
         r'\s*time\(us\): ([\d,]+)')
-
-def check_output(cmd, env=None):
-    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
-            stderr=subprocess.PIPE, shell=True)
-    stdout, stderr = handle.communicate()
-    return stdout.encode('utf8'), (stderr.encode('utf8') if stderr else ''), handle.returncode
-
-def check_call(cmd, env=None):
-    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env,
-            stderr=subprocess.STDOUT, shell=True)
-    stdout, _ = handle.communicate()
-    if handle.returncode != 0:
-        err = subprocess.CalledProcessError(handle.returncode, cmd)
-        # workaround since CalledProcessError does not accept output in the
-        # constructor in Python 2.6
-        err.output = stdout
-        raise err
-    return handle.returncode
 
 class TuningOptions(object):
     ''' Represents a set of options and constraints for tuning '''
@@ -99,14 +82,20 @@ def gen_tuning_function(opts):
 
         if opts.verbose:
             print('[{0}, {1}] {2}'.format(num_gangs, vector_length, command))
-        check_call(command, env=env)
+
+        c_stdout, c_stderr, returncode = call_command(command, env=env)
+        if returncode != 0:
+            print('[{0}, {1}] Compile command exit with code {2}.  Ignoring'
+                  ' this point.'.format(
+                    num_gangs, vector_length, returncode))
+            return float('+inf'), float('+inf')
 
         results = []
         for i in range(repetitions):
             if opts.verbose:
                 print('[{0}, {1}] {2}'.format(num_gangs, vector_length,
                         opts.executable), end=' ')
-            stdout, stderr, return_code = check_output(opts.executable)
+            stdout, stderr, return_code = call_command(opts.executable)
 
             if return_code != 0 and not opts.ignore_exit:
                 if opts.verbose:
