@@ -93,7 +93,7 @@ def gen_tuning_function(opts):
         output, return_code = call_command(command, env=env)
         if return_code != 0:
             LOGGER.error('%s Compile command failed with exit code %d.  '
-                    'Skipping this point.  (Compiler output was: %s)',
+                    'Skipping this point.  (Compiler output was: "%s")',
                     prefix, return_code, output)
             # Compiler failed, cannot continue
             return TestResult((num_gangs, vector_length),
@@ -115,7 +115,8 @@ def gen_tuning_function(opts):
                     LOGGER.error('%s Output from %s did not contain PGI '
                             'kernel timing data.  This is likely a problem '
                             'with your program or compile command.  The '
-                            'output was: %s', prefix, opts.executable, output)
+                            'output was: "%s"', prefix, opts.executable,
+                            output)
                     return TestResult((num_gangs, vector_length),
                             error='PGI kernel timing data missing')
 
@@ -126,7 +127,7 @@ def gen_tuning_function(opts):
                     LOGGER.error('%s Output from %s did not contain timing '
                             ' data.  This is likely a problem with your '
                             'program or output regex "%s".  The '
-                            'output was: %s', prefix, opts.executable,
+                            'output was: "%s"', prefix, opts.executable,
                             opts.time_regexp.pattern, output)
                     return TestResult((num_gangs, vector_length),
                             error='Timing data missing')
