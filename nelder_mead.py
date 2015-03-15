@@ -104,8 +104,7 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
         if point not in eval_cache:
             eval_cache[point] = objective(point)
 
-        avg, stdev = eval_cache[point]
-        return avg
+        return eval_cache[point].average
 
     N = len(initial)
     RHO = 1

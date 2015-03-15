@@ -19,9 +19,9 @@ def exhaustive_search(objective, points):
     iterations = 0
     for pt in points:
         iterations += 1
-        result, stdev = objective(pt)
-        if not math.isinf(result):
-            times[pt] = (result, stdev)
+        result = objective(pt)
+        if not result.has_error:
+            times[pt] = result
 
     best = sorted(times, key=lambda x: times[x])[0]
     return ExhaustiveSearchResult(best, times, iterations)

@@ -7,6 +7,7 @@ import subprocess
 from nelder_mead import *
 from exhaustive_search import exhaustive_search
 from utilities import call_command
+from testresult import TestResult
 
 LOGGER = logging.getLogger('tuner')
 
@@ -95,7 +96,8 @@ def gen_tuning_function(opts):
                     'Skipping this point.  (Compiler output was: %s)',
                     prefix, return_code, output)
             # Compiler failed, cannot continue
-            return float('+inf'), float('+inf')
+            return TestResult((num_gangs, vector_length),
+                    error='Compile command failed')
 
         results = []
         for i in range(repetitions):
@@ -114,7 +116,8 @@ def gen_tuning_function(opts):
                             'kernel timing data.  This is likely a problem '
                             'with your program or compile command.  The '
                             'output was: %s', prefix, opts.executable, output)
-                    return float('+inf'), float('+inf')
+                    return TestResult((num_gangs, vector_length),
+                            error='PGI kernel timing data missing')
 
                 time = float(match.group(1).replace(',', '')) * 1e-6
             else:
@@ -125,7 +128,8 @@ def gen_tuning_function(opts):
                             'program or output regex "%s".  The '
                             'output was: %s', prefix, opts.executable,
                             opts.time_regexp.pattern, output)
-                    return float('+inf'), float('+inf')
+                    return TestResult((num_gangs, vector_length),
+                            error='Timing data missing')
 
                 time = match.group(1)
 
@@ -134,7 +138,8 @@ def gen_tuning_function(opts):
             results.append(time)
 
         if len(results) == 0:  # Executable terminated with nonzero exit code
-            return (float('+inf'), float('+inf'))
+            return TestResult((num_gangs, vector_length),
+                    error='Executable failed')
         else:
             n = len(results)
             avg = sum(results) / n
@@ -146,7 +151,7 @@ def gen_tuning_function(opts):
 
             LOGGER.info('%s Average: %.4f, Standard Deviation: %.4f', prefix,
                     avg, stdev)
-            return (avg, stdev)
+            return TestResult((num_gangs, vector_length), avg, stdev)
     return fn
 
 def tune(opts):
@@ -155,11 +160,12 @@ def tune(opts):
     def objective(x):
         x = map(int, x)
 
+        out_of_range = TestResult(tuple(x), error='Point out of range')
         if x[0] < opts.num_gangs_min or x[0] > opts.num_gangs_max:
-            return float('+inf'), float('+inf')
+            return out_of_range
 
         if x[1] < opts.vector_length_min or x[1] > opts.vector_length_max:
-            return float('+inf'), float('+inf')
+            return out_of_range
 
         return run_test(x[0], x[1], repetitions=opts.repetitions)
 
@@ -187,15 +193,12 @@ def tune(opts):
 
     LOGGER.info('-- RESULTS --')
     for point in sorted(res.tests, key=lambda x: res.tests[x], reverse=True):
-        avg_time, stdev = res.tests[point]
-        LOGGER.info('num_gangs=%-4.0f vector_length=%-4.0f => time %.4f '
-                '(stdev=%.4f)', point[0], point[1], avg_time, stdev)
+        result = res.tests[point]
+        LOGGER.info(str(result))
     LOGGER.info('-------------')
     LOGGER.info('Tested %d points', len(res.tests))
     LOGGER.info('Search took %d iterations', res.num_iterations)
-    LOGGER.info('Optimal result: num_gangs=%-4.0f vector_length=%-4.0f => '
-            'time %.4f (stdev %.4f)', res.optimal[0], res.optimal[1],
-            res.tests[res.optimal][0], res.tests[res.optimal][1])
+    LOGGER.info('Optimal result: %s', str(res.tests[res.optimal]))
 
 def main():
     import argparse
