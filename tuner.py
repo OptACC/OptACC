@@ -88,8 +88,8 @@ def gen_tuning_function(opts):
         # compilation.
         env.update(os.environ)
 
-        prefix = '[num_gangs={0}, vector_length={1}]'.format(num_gangs,
-                vector_length)
+        prefix = '[num_gangs={0:<4.0f}, vector_length={1:<4.0f}]'.format(
+                num_gangs, vector_length)
 
         LOGGER.debug('%s Compiling: %s', prefix, command)
 
