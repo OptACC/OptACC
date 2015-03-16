@@ -1,5 +1,6 @@
 EPSILON = 1e-6
 class TestResult(object):
+    '''Represents the result of testing a single point'''
     def __init__(self, point, average=float('+inf'), stdev=float('+inf'),
             error=None):
         self.point = point

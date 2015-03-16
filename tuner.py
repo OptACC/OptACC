@@ -1,10 +1,12 @@
 #!/usr/bin/python
 import logging
+import math
 import os
 import re
 import subprocess
 
-from nelder_mead import *
+from nelder_mead import nelder_mead, round_acc, neighbors_acc
+from point import Point
 from exhaustive_search import exhaustive_search
 from utilities import call_command
 from testresult import TestResult
@@ -66,7 +68,8 @@ class TuningOptions(object):
 # If the compiler or program fails or the output does not match the given time
 # regular expression, an exception will be raised.
 def gen_tuning_function(opts):
-    def fn(num_gangs, vector_length, repetitions=1):
+    def fn(x, repetitions=1):
+        num_gangs, vector_length = map(int, x)
         command = opts.compile_command.format(
                 source=opts.source,
                 num_gangs=num_gangs,
@@ -96,8 +99,7 @@ def gen_tuning_function(opts):
                     'Skipping this point.  (Compiler output was: "%s")',
                     prefix, return_code, output)
             # Compiler failed, cannot continue
-            return TestResult((num_gangs, vector_length),
-                    error='Compile command failed')
+            return TestResult(x, error='Compile command failed')
 
         results = []
         for i in range(repetitions):
@@ -117,7 +119,7 @@ def gen_tuning_function(opts):
                             'with your program or compile command.  The '
                             'output was: "%s"', prefix, opts.executable,
                             output)
-                    return TestResult((num_gangs, vector_length),
+                    return TestResult(x,
                             error='PGI kernel timing data missing')
 
                 time = float(match.group(1).replace(',', '')) * 1e-6
@@ -129,8 +131,7 @@ def gen_tuning_function(opts):
                             'program or output regex "%s".  The '
                             'output was: "%s"', prefix, opts.executable,
                             opts.time_regexp.pattern, output)
-                    return TestResult((num_gangs, vector_length),
-                            error='Timing data missing')
+                    return TestResult(x, error='Timing data missing')
 
                 time = match.group(1)
 
@@ -139,8 +140,7 @@ def gen_tuning_function(opts):
             results.append(time)
 
         if len(results) == 0:  # Executable terminated with nonzero exit code
-            return TestResult((num_gangs, vector_length),
-                    error='Executable failed')
+            return TestResult(x, error='Executable failed')
         else:
             n = len(results)
             avg = sum(results) / n
@@ -152,23 +152,21 @@ def gen_tuning_function(opts):
 
             LOGGER.info('%s Average: %.4f, Standard Deviation: %.4f', prefix,
                     avg, stdev)
-            return TestResult((num_gangs, vector_length), avg, stdev)
+            return TestResult(x, avg, stdev)
     return fn
 
 def tune(opts):
     run_test = gen_tuning_function(opts)
 
     def objective(x):
-        x = map(int, x)
-
-        out_of_range = TestResult(tuple(x), error='Point out of range')
+        out_of_range = TestResult(x, error='Point out of range')
         if x[0] < opts.num_gangs_min or x[0] > opts.num_gangs_max:
             return out_of_range
 
         if x[1] < opts.vector_length_min or x[1] > opts.vector_length_max:
             return out_of_range
 
-        return run_test(x[0], x[1], repetitions=opts.repetitions)
+        return run_test(x, repetitions=opts.repetitions)
 
     if opts.search_method == 'nelder-mead':
         # Set initial guess to what the compiler usually assumes
