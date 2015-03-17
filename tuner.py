@@ -173,7 +173,20 @@ def tune(opts):
         # num_gangs(256) vector_length(128)
         init = Point(256, 128)
         res = nelder_mead(objective, init, neighbors_acc, round_acc)
-    elif opts.search_method == 'exhaustive':
+    elif opts.search_method == 'exhaustive32':
+        # Exhaustive search: search multiples of 32 within gang/vector ranges
+        def generator():
+            gmin = opts.num_gangs_min / 32
+            gmax = opts.num_gangs_max / 32
+            vmin = opts.vector_length_min / 32
+            vmax = opts.vector_length_max / 32
+            for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
+                for vec_mult in range(vmin, vmax+1):
+                    num_gangs = max(32 * gang_mult, 1)    # max(_, 1) ensures
+                    vector_length = max(32 * vec_mult, 1) # these are nonzero
+                    yield Point(num_gangs, vector_length)
+        res = exhaustive_search(objective, generator())
+    elif opts.search_method == 'exhaustive-pow2':
         # Exhaustive search: search powers of 2 within gang/vector ranges
         def ilog2(x):
             return int(math.floor(math.log(x, 2)))
