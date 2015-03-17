@@ -1,5 +1,6 @@
 import math
 from searchresult import SearchResult
+from testresult import TestResult
 from point import Point
 
 def _exhaustive_search(objective, points):
@@ -16,21 +17,18 @@ def _exhaustive_search(objective, points):
     for pt in points:
         iterations += 1
         result = objective(pt)
-        if not result.has_error:
-            times[pt] = result
+        times[pt] = result
 
     best = sorted(times, key=lambda x: times[x])[0]
     return SearchResult(best, times, iterations)
 
 def tune_exhaustive_pow2(objective, opts):
     # Exhaustive search: search powers of 2 within gang/vector ranges
-    def ilog2(x):
-        return int(math.floor(math.log(x, 2)))
     def generator():
-        gmin = ilog2(opts.num_gangs_min)
-        gmax = ilog2(opts.num_gangs_max)
-        vmin = ilog2(opts.vector_length_min)
-        vmax = ilog2(opts.vector_length_max)
+        gmin = int(math.ceil(math.log(opts.num_gangs_min, 2)))
+        gmax = int(math.floor(math.log(opts.num_gangs_max, 2)))
+        vmin = int(math.ceil(math.log(opts.vector_length_min, 2)))
+        vmax = int(math.floor(math.log(opts.vector_length_max, 2)))
         for gang_pow2 in range(gmin, gmax+1): # +1 since range is exclusive
             for vec_pow2 in range(vmin, vmax+1):
                 yield Point(1 << gang_pow2, 1 << vec_pow2)
@@ -39,9 +37,9 @@ def tune_exhaustive_pow2(objective, opts):
 def _tune_exhaustive(objective, opts, mul):
     # Exhaustive search: search multiples of mul within gang/vector ranges
     def generator():
-        gmin = opts.num_gangs_min / mul
+        gmin = int(math.ceil(opts.num_gangs_min / float(mul)))
         gmax = opts.num_gangs_max / mul
-        vmin = opts.vector_length_min / mul
+        vmin = int(math.ceil(opts.vector_length_min / float(mul)))
         vmax = opts.vector_length_max / mul
         for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
             for vec_mult in range(vmin, vmax+1):
