@@ -9,14 +9,12 @@ def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
     '''Optimizes the objective function using a modified Nelder-Mead algorithm.
 
     Arguments:
-    objective -- the objective function to optimize.  Receives a Point as input
-                 and returns a pair (x, s), where x is a numeric (int or float)
-                 value representing the average runtime and s is the standard
-                 deviation of the runtimes.
+    objective -- The objective function to optimize.  Receives a Point as input
+                 and returns a SearchResult.
     initial -- A Point representing the initial point to test.
-    neighbors -- a function that accepts a Point and returns an iterable of
+    neighbors -- A function that accepts a Point and returns an iterable of
                  Points neighboring the input.
-    roundfn -- a function that accepts a Point and returns a Point, rounded
+    roundfn -- A function that accepts a Point and returns a Point, rounded
                according to the rules necessary to produce a valid input to the
                objective function.
     maxiter -- The maximum number of iterations of the algorithm to run before

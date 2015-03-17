@@ -10,13 +10,16 @@ from utilities import call_command
 from testresult import TestResult
 
 from methods.nelder_mead import tune as tune_nelder_mead
-from methods.exhaustive_search import (tune_pow2 as tune_exhaustive_pow2,
-        tune_32 as tune_exhaustive_32)
+from methods.exhaustive_search import (tune_exhaustive_pow2, tune_exhaustive_32,
+        tune_exhaustive_64, tune_exhaustive_128, tune_exhaustive_256)
 
 METHODS = {
     'nelder-mead': tune_nelder_mead,
     'exhaustive-pow2': tune_exhaustive_pow2,
-    'exhaustive32': tune_exhaustive_32
+    'exhaustive32': tune_exhaustive_32,
+    'exhaustive64': tune_exhaustive_64,
+    'exhaustive128': tune_exhaustive_128,
+    'exhaustive256': tune_exhaustive_256
 }
 
 LOGGER = logging.getLogger('tuner')
