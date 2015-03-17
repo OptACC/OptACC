@@ -32,6 +32,6 @@ class TestResult(object):
                     .format(self.point[0], self.point[1], self.error))
         else:
             return ('num_gangs={0:<4.0f} vector_length={1:<4.0f} => '
-                    'time={2:<.4f} (stdev={3:.4f})'.format(
+                    'time={2} (stdev={3})'.format(
                             self.point[0], self.point[1], self.average,
                             self.stdev))

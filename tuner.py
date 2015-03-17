@@ -96,7 +96,7 @@ def gen_tuning_function(opts):
         # compilation.
         env.update(os.environ)
 
-        prefix = '[num_gangs={0:<4.0f}, vector_length={1:<4.0f}]'.format(
+        prefix = '[num_gangs:{0:>4.0f}, vector_length:{1:>4.0f}]'.format(
                 num_gangs, vector_length)
 
         LOGGER.debug('%s Compiling: %s', prefix, command)
@@ -158,7 +158,7 @@ def gen_tuning_function(opts):
                 stdev = math.sqrt(
                         sum((x - avg)**2 for x in results) / float(n - 1))
 
-            LOGGER.info('%s Average: %.4f, Standard Deviation: %.4f', prefix,
+            LOGGER.info('%s Average: %f, Standard Deviation: %f', prefix,
                     avg, stdev)
             return TestResult(x, avg, stdev)
     return fn
@@ -220,7 +220,8 @@ def main():
     t = TuningOptions(**kwargs)
 
     LOGGER.setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s %(levelname)s\t%(message)s',
+        '%H:%M:%S')
     # Set up console logger
     console = logging.StreamHandler()
     console.setFormatter(formatter)
