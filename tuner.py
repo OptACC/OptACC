@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 
+from result_writer import ResultFiles, ResultWriter
 from point import Point
 from utilities import call_command
 from testresult import TestResult
@@ -45,6 +46,8 @@ class TuningOptions(object):
             search_method='nelder-mead',
             repetitions=10,
             time_regexp=TIME_RE,
+            write_gnuplot=None,
+            write_csv=None,
             num_gangs_min=2,
             num_gangs_max=1024,
             vector_length_min=2,
@@ -65,6 +68,8 @@ class TuningOptions(object):
         self.search_method = search_method
         self.repetitions = repetitions
         self.time_regexp = re.compile(time_regexp, re.I)
+        self.write_gnuplot = write_gnuplot
+        self.write_csv = write_csv
         self.num_gangs_min = num_gangs_min
         self.num_gangs_max = num_gangs_max
         self.vector_length_min = vector_length_min
@@ -78,7 +83,7 @@ class TuningOptions(object):
 # compile the source, run the output N times, and return a list of N results.
 # If the compiler or program fails or the output does not match the given time
 # regular expression, an exception will be raised.
-def gen_tuning_function(opts):
+def gen_tuning_function(opts, output_writer):
     def fn(x, repetitions=1):
         num_gangs, vector_length = map(int, x)
         command = opts.compile_command.format(
@@ -110,7 +115,9 @@ def gen_tuning_function(opts):
                     'Skipping this point.  (Compiler output was: "%s")',
                     prefix, return_code, output)
             # Compiler failed, cannot continue
-            return TestResult(x, error='Compile command failed')
+            result = TestResult(x, error='Compile command failed')
+            output_writer.add(result)
+            return result
 
         results = []
         for i in range(repetitions):
@@ -130,8 +137,9 @@ def gen_tuning_function(opts):
                             'with your program or compile command.  The '
                             'output was: "%s"', prefix, opts.executable,
                             output)
-                    return TestResult(x,
+                    result = TestResult(x,
                             error='PGI kernel timing data missing')
+                    break
 
                 time = float(match.group(1).replace(',', '')) * 1e-6
             else:
@@ -142,7 +150,8 @@ def gen_tuning_function(opts):
                             'program or output regex "%s".  The '
                             'output was: "%s"', prefix, opts.executable,
                             opts.time_regexp.pattern, output)
-                    return TestResult(x, error='Timing data missing')
+                    result = TestResult(x, error='Timing data missing')
+                    break
 
                 time = match.group(1)
 
@@ -151,7 +160,7 @@ def gen_tuning_function(opts):
             results.append(time)
 
         if len(results) == 0:  # Executable terminated with nonzero exit code
-            return TestResult(x, error='Executable failed')
+            result = TestResult(x, error='Executable failed')
         else:
             n = len(results)
             avg = sum(results) / n
@@ -163,11 +172,14 @@ def gen_tuning_function(opts):
 
             LOGGER.info('%s Average: %f, Standard Deviation: %f', prefix,
                     avg, stdev)
-            return TestResult(x, avg, stdev)
+            result = TestResult(x, avg, stdev)
+
+        output_writer.add(result)
+        return result
     return fn
 
-def tune(opts):
-    run_test = gen_tuning_function(opts)
+def tune(opts, output_writer):
+    run_test = gen_tuning_function(opts, output_writer)
 
     def objective(x):
         out_of_range = TestResult(x, error='Point out of range')
@@ -184,6 +196,8 @@ def tune(opts):
                 opts.search_method))
 
     res = METHODS[opts.search_method](objective, opts)
+
+    output_writer.write_result(res)
 
     LOGGER.info('-- RESULTS --')
     for point in sorted(res.tests, key=lambda x: res.tests[x], reverse=True):
@@ -206,6 +220,8 @@ def main():
     parser.add_argument('-t', '--time-regexp', type=str)
     parser.add_argument('-k', '--kernel-timing', action='store_true')
     parser.add_argument('-l', '--logfile', type=str)
+    parser.add_argument('--write-gnuplot', type=str)
+    parser.add_argument('--write-csv', type=str)
     parser.add_argument('--num-gangs-min', type=int)
     parser.add_argument('--num-gangs-max', type=int)
     parser.add_argument('--vector-length-min', type=int)
@@ -237,7 +253,10 @@ def main():
         LOGGER.addHandler(file_log)
 
     LOGGER.debug('TuningOptions: %s', t.__dict__)
-    tune(t)
+
+    # Set up output data files
+    with ResultWriter(ResultFiles(args.write_gnuplot, args.write_csv)) as w:
+        tune(t, w)
 
 if __name__ == '__main__':
     main()
