@@ -3,6 +3,8 @@ import math
 from point import Point
 from searchresult import SearchResult
 
+DEFAULT_INITIAL_POINT = Point(256, 128)
+
 def nelder_mead(objective, initial, neighbors, roundfn, maxiter=100):
     '''Optimizes the objective function using a modified Nelder-Mead algorithm.
 
@@ -149,3 +151,6 @@ def neighbors_acc(x):
                 continue
             n.append(Point(x[0]+i, x[1]*j))
     return n
+
+def tune(objective, opts):
+    return nelder_mead(objective, DEFAULT_INITIAL_POINT, neighbors_acc, round_acc)

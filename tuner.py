@@ -5,11 +5,19 @@ import os
 import re
 import subprocess
 
-from nelder_mead import nelder_mead, round_acc, neighbors_acc
 from point import Point
-from exhaustive_search import exhaustive_search
 from utilities import call_command
 from testresult import TestResult
+
+from methods.nelder_mead import tune as tune_nelder_mead
+from methods.exhaustive_search import (tune_pow2 as tune_exhaustive_pow2,
+        tune_32 as tune_exhaustive_32)
+
+METHODS = {
+    'nelder-mead': tune_nelder_mead,
+    'exhaustive-pow2': tune_exhaustive_pow2,
+    'exhaustive32': tune_exhaustive_32
+}
 
 LOGGER = logging.getLogger('tuner')
 
@@ -168,40 +176,11 @@ def tune(opts):
 
         return run_test(x, repetitions=opts.repetitions)
 
-    if opts.search_method == 'nelder-mead':
-        # Set initial guess to what the compiler usually assumes
-        # num_gangs(256) vector_length(128)
-        init = Point(256, 128)
-        res = nelder_mead(objective, init, neighbors_acc, round_acc)
-    elif opts.search_method == 'exhaustive32':
-        # Exhaustive search: search multiples of 32 within gang/vector ranges
-        def generator():
-            gmin = opts.num_gangs_min / 32
-            gmax = opts.num_gangs_max / 32
-            vmin = opts.vector_length_min / 32
-            vmax = opts.vector_length_max / 32
-            for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
-                for vec_mult in range(vmin, vmax+1):
-                    num_gangs = max(32 * gang_mult, 1)    # max(_, 1) ensures
-                    vector_length = max(32 * vec_mult, 1) # these are nonzero
-                    yield Point(num_gangs, vector_length)
-        res = exhaustive_search(objective, generator())
-    elif opts.search_method == 'exhaustive-pow2':
-        # Exhaustive search: search powers of 2 within gang/vector ranges
-        def ilog2(x):
-            return int(math.floor(math.log(x, 2)))
-        def generator():
-            gmin = ilog2(opts.num_gangs_min)
-            gmax = ilog2(opts.num_gangs_max)
-            vmin = ilog2(opts.vector_length_min)
-            vmax = ilog2(opts.vector_length_max)
-            for gang_pow2 in range(gmin, gmax+1): # +1 since range is exclusive
-                for vec_pow2 in range(vmin, vmax+1):
-                    yield Point(1 << gang_pow2, 1 << vec_pow2)
-        res = exhaustive_search(objective, generator())
-    else:
+    if opts.search_method not in METHODS:
         raise RuntimeError('Unknown search method "{0}"'.format(
                 opts.search_method))
+
+    res = METHODS[opts.search_method](objective, opts)
 
     LOGGER.info('-- RESULTS --')
     for point in sorted(res.tests, key=lambda x: res.tests[x], reverse=True):
