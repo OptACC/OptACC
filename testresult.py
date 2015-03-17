@@ -13,7 +13,7 @@ class TestResult(object):
         return self.error is not None
 
     def __cmp__(self, other):
-        if self.has_error and not other.has_error:
+        if self.has_error and (other is None or not other.has_error):
             return -1
         elif other.has_error and not self.has_error:
             return 1

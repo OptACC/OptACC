@@ -119,6 +119,7 @@ def gen_tuning_function(opts, output_writer):
             output_writer.add(result)
             return result
 
+        result = None
         results = []
         for i in range(repetitions):
             LOGGER.debug('%s Running %s', prefix, opts.executable)
@@ -127,6 +128,7 @@ def gen_tuning_function(opts, output_writer):
             if return_code != 0 and not opts.ignore_exit:
                 LOGGER.error('%s Command %s failed with exit code %d', prefix,
                         opts.executable, return_code)
+                result = TestResult(x, error='Executable failed')
                 break  # Don't record time; assume subsequent reps will fail
 
             if opts.kernel_timing:
@@ -159,20 +161,20 @@ def gen_tuning_function(opts, output_writer):
             LOGGER.debug('%s Time: %f', prefix, time)
             results.append(time)
 
-        if len(results) == 0:  # Executable terminated with nonzero exit code
-            result = TestResult(x, error='Executable failed')
-        else:
-            n = len(results)
-            avg = sum(results) / n
-            if n == 1: # Avoid ZeroDivisionError
-                stdev = 0
+        if result is None:
+            if not results:
+                result = TestResult(x, error='No points tested')
             else:
-                stdev = math.sqrt(
-                        sum((x - avg)**2 for x in results) / float(n - 1))
-
-            LOGGER.info('%s Average: %f, Standard Deviation: %f', prefix,
-                    avg, stdev)
-            result = TestResult(x, avg, stdev)
+                n = len(results)
+                avg = sum(results) / n
+                if n == 1: # Avoid ZeroDivisionError
+                    stdev = 0
+                else:
+                    stdev = math.sqrt(
+                            sum((x - avg)**2 for x in results) / float(n - 1))
+                LOGGER.info('%s Average: %f, Standard Deviation: %f', prefix,
+                        avg, stdev)
+                result = TestResult(x, avg, stdev)
 
         output_writer.add(result)
         return result
@@ -197,8 +199,6 @@ def tune(opts, output_writer):
 
     res = METHODS[opts.search_method](objective, opts)
 
-    output_writer.write_result(res)
-
     LOGGER.info('-- RESULTS --')
     for point in sorted(res.tests, key=lambda x: res.tests[x], reverse=True):
         result = res.tests[point]
@@ -207,6 +207,9 @@ def tune(opts, output_writer):
     LOGGER.info('Tested %d points', len(res.tests))
     LOGGER.info('Search took %d iterations', res.num_iterations)
     LOGGER.info('Optimal result: %s', str(res.tests[res.optimal]))
+
+    # Do this afterward, in case writing the gnuplot files fails
+    output_writer.write_result(res)
 
 def main():
     import argparse

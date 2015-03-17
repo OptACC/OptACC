@@ -1,9 +1,7 @@
 import csv
-import os
 
 from collections import namedtuple
 
-'''Provides filenames to which tuning output data should be written'''
 ResultFiles = namedtuple('ResultFiles', ['gnuplot', 'csv'])
 
 class ResultWriter(object):
@@ -14,7 +12,6 @@ class ResultWriter(object):
         self.csv_file = None
 
     def __enter__(self):
-        print(self.data_files)
         if self.data_files.csv:
             self.csv_file = open(self.data_files.csv, 'wb')
             self.csv_writer = csv.writer(self.csv_file, delimiter=',',
@@ -41,7 +38,7 @@ class ResultWriter(object):
             lastx = 0
             for point in sorted(search_result.tests, key=lambda pt: pt.coords):
                 res = search_result.tests[point]
-		if res.has_error:
+                if res.has_error:
                     continue
                 if point[0] != lastx:
                     f.write('\n') # Blank line between successive x-values
@@ -80,9 +77,9 @@ splot '{0}.dat' using 1:2:3 notitle pal with pm3d
                 search_result.tests[optimal].stdev))
 
     def write_result(self, search_result):
-        if self.data_files.gnuplot != None:
+        if self.data_files.gnuplot is not None:
             self._write_gnuplot_output(search_result)
 
     def __exit__(self, type, value, traceback):
-        if self.csv_file != None:
+        if self.csv_file is not None:
             self.csv_file.close()
