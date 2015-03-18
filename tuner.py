@@ -48,6 +48,7 @@ class TuningOptions(object):
             time_regexp=TIME_RE,
             write_gnuplot=None,
             write_csv=None,
+            write_spreadsheet=None,
             num_gangs_min=2,
             num_gangs_max=1024,
             vector_length_min=2,
@@ -70,6 +71,7 @@ class TuningOptions(object):
         self.time_regexp = re.compile(time_regexp, re.I)
         self.write_gnuplot = write_gnuplot
         self.write_csv = write_csv
+        self.write_spreadsheet = write_spreadsheet
         self.num_gangs_min = num_gangs_min
         self.num_gangs_max = num_gangs_max
         self.vector_length_min = vector_length_min
@@ -208,8 +210,8 @@ def tune(opts, output_writer):
     LOGGER.info('Search took %d iterations', res.num_iterations)
     LOGGER.info('Optimal result: %s', str(res.tests[res.optimal]))
 
-    # Do this afterward, in case writing the gnuplot files fails
-    output_writer.write_result(res)
+    # Do this afterward, in case writing files fails
+    output_writer.write_result(res, opts.repetitions)
 
 def main():
     import argparse
@@ -225,6 +227,7 @@ def main():
     parser.add_argument('-l', '--logfile', type=str)
     parser.add_argument('--write-gnuplot', type=str)
     parser.add_argument('--write-csv', type=str)
+    parser.add_argument('--write-spreadsheet', type=str)
     parser.add_argument('--num-gangs-min', type=int)
     parser.add_argument('--num-gangs-max', type=int)
     parser.add_argument('--vector-length-min', type=int)
@@ -258,7 +261,9 @@ def main():
     LOGGER.debug('TuningOptions: %s', t.__dict__)
 
     # Set up output data files
-    with ResultWriter(ResultFiles(args.write_gnuplot, args.write_csv)) as w:
+    with ResultWriter(ResultFiles(args.write_gnuplot,
+                                  args.write_csv,
+                                  args.write_spreadsheet)) as w:
         tune(t, w)
 
 if __name__ == '__main__':
