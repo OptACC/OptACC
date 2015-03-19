@@ -53,7 +53,9 @@ class ResultWriter(object):
         self.csv_writer.writerow(row)
 
     def _write_gnuplot_output(self, search_result):
-        with open(self.data_files.gnuplot + '.dat', 'w') as f:
+        full_filename = self.data_files.gnuplot
+        prefix, suffix = os.path.splitext(full_filename)
+        with open(prefix + '.dat', 'w') as f:
             lastx = 0
             for point in sorted(search_result.tests, key=lambda pt: pt.coords):
                 res = search_result.tests[point]
@@ -64,9 +66,6 @@ class ResultWriter(object):
                     lastx = point[0]
                 f.write('{0:<6.0f} {1:<6.0f} {2} {3}\n'.format(
                     point[0], point[1], res.average, res.stdev))
-
-        full_filename = self.data_files.gnuplot
-        prefix, suffix = os.path.splitext(full_filename)
         with open(full_filename if suffix else prefix + '.gp', 'w') as f:
             f.write(_gnuplot_script.format(
                 filename_prefix=prefix,
