@@ -69,11 +69,11 @@ class ResultWriter(object):
         prefix, suffix = os.path.splitext(full_filename)
         with open(full_filename if suffix else prefix + '.gp', 'w') as f:
             f.write(_gnuplot_script.format(
-                filename_prefix = prefix,
-                num_gangs = search_result.optimal[0],
-                vector_length = search_result.optimal[1],
-                time = search_result.tests[search_result.optimal].average,
-                stdev = search_result.tests[search_result.optimal].stdev))
+                filename_prefix=prefix,
+                num_gangs=search_result.optimal[0],
+                vector_length=search_result.optimal[1],
+                time=search_result.tests[search_result.optimal].average,
+                stdev=search_result.tests[search_result.optimal].stdev))
 
     def _write_spreadsheet(self, res, reps):
         with open(self.data_files.spreadsheet, 'w') as f:
@@ -84,20 +84,20 @@ class ResultWriter(object):
                 vector_length=res.optimal[1],
                 num_iterations=res.num_iterations,
                 num_repetitions=reps,
-		points_tested_plus1=len(res.tests)+1))
+                points_tested_plus1=len(res.tests)+1))
             for point in sorted(res.tests, key=lambda pt: pt.coords):
                 f.write(_excel_test_row.format(
                     num_gangs=point[0],
-		    vector_length=point[1],
-		    average=res.tests[point].average,
-		    stdev=res.tests[point].stdev,
-		    error_msg=escape(res.tests[point].error or '')))
+                    vector_length=point[1],
+                    average=res.tests[point].average,
+                    stdev=res.tests[point].stdev,
+                    error_msg=escape(res.tests[point].error or '')))
             f.write(_excel_part2.format(total_runs_plus1=len(self.all_runs)+1))
-	    for point, time in self.all_runs:
+            for point, time in self.all_runs:
                 f.write(_excel_run_row.format(
                     num_gangs=point[0],
-		    vector_length=point[1],
-		    time=time))
+                    vector_length=point[1],
+                    time=time))
             f.write(_excel_part3)
 
 _gnuplot_script = """# Script for gnuplot 5.0
