@@ -162,6 +162,7 @@ def gen_tuning_function(opts, output_writer):
             time = float(time)
             LOGGER.debug('%s Time: %f', prefix, time)
             results.append(time)
+            output_writer.log_run(x, time)
 
         if result is None:
             if not results:
