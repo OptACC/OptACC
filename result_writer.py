@@ -51,6 +51,7 @@ class ResultWriter(object):
         if test_result.error:
             row.append(test_result.error)
         self.csv_writer.writerow(row)
+        self.csv_file.flush()
 
     def _write_gnuplot_output(self, search_result):
         full_filename = self.data_files.gnuplot
