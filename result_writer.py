@@ -69,7 +69,7 @@ class ResultWriter(object):
                     point[0], point[1], res.average, res.stdev))
         with open(full_filename if suffix else prefix + '.gp', 'w') as f:
             f.write(_gnuplot_script.format(
-                filename_prefix=prefix,
+                filename_prefix=os.path.basename(prefix),
                 num_gangs=search_result.optimal[0],
                 vector_length=search_result.optimal[1],
                 time=search_result.tests[search_result.optimal].average,
