@@ -1,9 +1,13 @@
 #!/usr/bin/python
+
+from __future__ import print_function
+
 import logging
 import math
 import os
 import re
 import subprocess
+import sys
 
 from result_writer import ResultFiles, ResultWriter
 from point import Point
@@ -40,7 +44,7 @@ KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
 class TuningOptions(object):
     ''' Represents a set of options and constraints for tuning '''
     def __init__(self,
-            source,
+            source=None,
             executable='./a.out',
             compile_command=None, # None here implies use of default
             search_method='nelder-mead',
@@ -218,7 +222,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Autotune an OpenACC program')
-    parser.add_argument('source', type=str)
+    parser.add_argument('source', type=str, nargs='?')
     parser.add_argument('-e', '--executable', type=str)
     parser.add_argument('-c', '--compile-command', type=str)
     parser.add_argument('-s', '--search-method', type=str,
@@ -230,11 +234,14 @@ def main():
     parser.add_argument('-l', '--logfile', type=str,
             help='Write log messages to a file')
     parser.add_argument('--write-gnuplot', type=str,
-            help='Generate a Gnuplot script to visualize the test results')
+            help='Generate a Gnuplot script to visualize the test results',
+            metavar='filename.gp')
     parser.add_argument('--write-csv', type=str,
-            help='Write results line by line to a CSV file')
+            help='Write results line by line to a CSV file',
+            metavar='filename.csv')
     parser.add_argument('--write-spreadsheet', type=str,
-            help='Write an Excel XML file containing results and statistics')
+            help='Write an Excel XML file containing results and statistics',
+            metavar='filename.xml')
     parser.add_argument('--num-gangs-min', type=int)
     parser.add_argument('--num-gangs-max', type=int)
     parser.add_argument('--vector-length-min', type=int)
@@ -243,6 +250,23 @@ def main():
     parser.add_argument('-x', '--ignore-exit', action='store_true')
 
     args = parser.parse_args()
+
+    # Sanity check args
+    if not args.source and not args.compile_command:
+        print('No source file specified.  Please specify a source file or '
+              'a custom --compile-command.  See --help for more details',
+                file=sys.stderr)
+        sys.exit(1)
+
+    if args.num_gangs_min is not None and args.num_gangs_min <= 0 or (
+            args.vector_length_min is not None and args.vector_length_min <= 0):
+        print('--num-gangs-min and --vector-length-min must be > 0',
+                file=sys.stderr)
+        sys.exit(1)
+
+    if args.repetitions is not None and args.repetitions <= 0:
+        print('--repetitions must be > 0', file=sys.stderr)
+        sys.exit(1)
 
     # Extract provided arguments into a dictionary for easy construction
     # of TuningOptions
