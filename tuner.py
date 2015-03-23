@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import csv
 import logging
 import math
 import os
@@ -187,8 +188,57 @@ def gen_tuning_function(opts, output_writer):
         return result
     return fn
 
+# Loads data points from a CSV file (previously written using the --write-csv
+# command line option) and returns a dictionary mapping
+# (num_gangs, vector_length) pairs to the timing data for that point.
+def load_testing_data(csv_filename):
+    LOGGER.info('TEST MODE - Using timing data from CSV file %s', csv_filename)
+    csv_data = {}
+    with open(csv_filename) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            key = Point(row['num_gangs'], row['vector_length'])
+            values = { 'time': float(row['time']),
+                       'stdev': float(row['stdev']),
+                       'error msg': row['error msg'] }
+            csv_data[key] = values
+    LOGGER.info('            Loaded %d data points', len(csv_data))
+    return csv_data
+
+# From a set of tuning options, return a function that when called with a
+# num_gangs and vector_length will return a test result based on prior data
+# cached in a CSV file.
+def gen_testing_function(csv_filename, output_writer):
+    csv_data = load_testing_data(csv_filename)
+    def fn(x, repetitions=1):
+        num_gangs, vector_length = map(int, x)
+
+        prefix = '[num_gangs:{0:>4.0f}, vector_length:{1:>4.0f}]'.format(
+                num_gangs, vector_length)
+
+        result = None
+        if x not in csv_data:
+            msg = '{0} not in CSV data'.format(x)
+            result = TestResult(x, error=msg)
+            LOGGER.error('%s', msg)
+        elif csv_data[x]['error msg'] is not None:
+            result = TestResult(x, error=csv_data[x]['error msg'])
+        else:
+            avg = csv_data[x]['time']
+            stdev = csv_data[x]['stdev']
+            LOGGER.info('%s Average: %f, Standard Deviation: %f', prefix,
+                avg, stdev)
+            result = TestResult(x, avg, stdev)
+
+        output_writer.add(result)
+        return result
+    return fn
+
 def tune(opts, output_writer):
-    run_test = gen_tuning_function(opts, output_writer)
+    if opts.source is not None and opts.source.endswith(".csv"):
+        run_test = gen_testing_function(opts.source, output_writer)
+    else:
+        run_test = gen_tuning_function(opts, output_writer)
 
     def objective(x):
         out_of_range = TestResult(x, error='Point out of range')
