@@ -1,3 +1,4 @@
+import math
 import sys
 
 def _ssq(col):
@@ -107,7 +108,68 @@ def _f(n, m):
     row = next(i for i in reversed(range(len(_f_table))) if m >= _f_table[i][0])
     return _f_table[row][col]
 
+def _avg(ns):
+    return sum(ns) / float(len(ns))
+
+def _stdev(ns):
+    n = len(ns)
+    avg = _avg(ns)
+    if n == 1:
+        return 0
+    else:
+        return math.sqrt(sum((x-avg)**2 for x in ns) / float(n-1))
+
+def _t(deg_freedom): # 0.95 quantile of t-variate
+    table = [ 6.314, 2.92, 2.353, 2.132, 2.015,
+              1.943, 1.895, 1.86, 1.833, 1.812,
+              1.796, 1.782, 1.771, 1.761, 1.753,
+              1.746, 1.74, 1.734, 1.729, 1.725,
+              1.721, 1.717, 1.714, 1.711, 1.708,
+              1.706, 1.703, 1.701, 1.699, 1.697 ]
+    index = max(int(round(deg_freedom)), 1) - 1
+    index = min(index, len(table)-1)
+    return table[index]
+
+def is_diff_significant(avg_a, stdev_a, n_a, avg_b, stdev_b, n_b):
+    sa2_na = stdev_a**2 / n_a
+    sb2_nb = stdev_b**2 / n_b
+
+    mean_diff = avg_a - avg_b
+    stdev_mean_diff = math.sqrt(sa2_na + sb2_nb)
+
+    # Compute the number of degrees of freedom
+    numerator = (sa2_na + sb2_nb)**2
+    denom1 = (1.0 / (n_a+1)) * sa2_na**2
+    denom2 = (1.0 / (n_b+1)) * sb2_nb**2
+    deg_freedom = numerator / (denom1 + denom2) - 2
+
+    # Compute 90% confidence interval
+    low = mean_diff - _t(deg_freedom)*stdev_mean_diff
+    high = mean_diff + _t(deg_freedom)*stdev_mean_diff
+
+    # If the confidence interval contains 0, not significantly different
+    return not (low <= 0 <= high)
+
+def ttest(a, b):
+    return is_diff_significant(_avg(a), _stdev(a), len(a),
+                               _avg(b), _stdev(b), len(b))
+
 if __name__ == '__main__':
+    a = [ 5.36, 16.57, 0.62, 1.41, 0.64, 7.26 ]
+    b = [ 19.12, 3.52, 3.38, 2.50, 3.60, 1.74 ]
+    print(significantly_different(a, b))
+
+    avg_a   = float(raw_input("Average of Group A: "))
+    stdev_a = float(raw_input("Std Dev of Group A: "))
+    n_a     = float(raw_input("# Items in Group A: "))
+    avg_b   = float(raw_input("Average of Group B: "))
+    stdev_b = float(raw_input("Std Dev of Group B: "))
+    n_b     = float(raw_input("# Items in Group B: "))
+    if is_diff_significant(avg_a, stdev_a, n_a, avg_b, stdev_b, n_b):
+        print('Significantly different (90% confidence)')
+    else:
+        print('Not significantly different (90% confidence)')
+
     print('Example f values:')
     for pair in [ (1,1), (1,3), (3,1), (4,5), (5,4), (5,35), (35,5) ]:
         print('f{0} = {1}'.format(pair, _f(pair[0], pair[1])))
@@ -117,7 +179,7 @@ if __name__ == '__main__':
              [101, 144, 211, 288, 72],
              [130, 180, 141, 374, 302] ]
     print('  Statistically significant? {0}'.format(anova_1factor(data)))
- 
+
     print('Cache Comparison Study (Jain page 345) - no replication:')
     data = [ [54, 55, 106],
              [60, 60, 123],

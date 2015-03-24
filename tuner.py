@@ -211,13 +211,27 @@ def load_testing_data(csv_filename):
                   csv_filename, reader.line_num, e)
             sys.exit(1)
     LOGGER.info('            Loaded %d data points', len(csv_data))
-    return csv_data
+
+    # Find the best and worst points in the loaded data
+    sdata = sorted(csv_data, key=lambda x: csv_data[x]['time'])
+    best = sdata[0]
+    worst = sdata[len(sdata)-1]
+    LOGGER.info(u'            Minimum: %s: %f \u00B1 %f',
+                best, csv_data[best]['time'], csv_data[best]['stdev'])
+    LOGGER.info(u'            Maximum: %s: %s \u00B1 %f',
+                worst, csv_data[worst]['time'], csv_data[worst]['stdev'])
+
+    known_best_result = TestResult(point=best,
+                                   average=csv_data[best]['time'],
+                                   stdev=csv_data[best]['stdev'],
+                                   error=csv_data[best]['error msg'])
+    return csv_data, known_best_result
 
 # From a set of tuning options, return a function that when called with a
 # num_gangs and vector_length will return a test result based on prior data
 # cached in a CSV file.
 def gen_testing_function(csv_filename, output_writer):
-    csv_data = load_testing_data(csv_filename)
+    csv_data, known_best = load_testing_data(csv_filename)
     def fn(x, repetitions=1):
         num_gangs, vector_length = map(int, x)
 
@@ -240,13 +254,13 @@ def gen_testing_function(csv_filename, output_writer):
 
         output_writer.add(result)
         return result
-    return fn
+    return fn, known_best
 
 def tune(opts, output_writer):
     if opts.source is not None and opts.source.endswith(".csv"):
-        run_test = gen_testing_function(opts.source, output_writer)
+        run_test, known_best = gen_testing_function(opts.source, output_writer)
     else:
-        run_test = gen_tuning_function(opts, output_writer)
+        run_test, known_best = gen_tuning_function(opts, output_writer), None
 
     def objective(x):
         out_of_range = TestResult(x, error='Point out of range')
@@ -271,7 +285,13 @@ def tune(opts, output_writer):
     LOGGER.info('-------------')
     LOGGER.info('Tested %d points', len(res.tests))
     LOGGER.info('Search took %d iterations', res.num_iterations)
-    LOGGER.info('Optimal result: %s', str(res.tests[res.optimal]))
+    LOGGER.info('Best result found: %s', str(res.tests[res.optimal]))
+    if known_best is not None:
+        LOGGER.info('Optimal result from test data: %s', str(known_best))
+        if known_best.is_signif_diff(res.tests[res.optimal], opts.repetitions):
+            LOGGER.warn('BEST RESULT FOUND DIFFERS FROM OPTIMAL RESULT')
+        else:
+            LOGGER.info('(No statistically significant difference)')
 
     # Do this afterward, in case writing files fails
     output_writer.write_result(res, opts.repetitions)

@@ -1,3 +1,5 @@
+from stats import is_diff_significant
+
 EPSILON = 1e-7
 class TestResult(object):
     '''Represents the result of testing a single point'''
@@ -11,6 +13,10 @@ class TestResult(object):
     @property
     def has_error(self):
         return self.error is not None
+
+    def is_signif_diff(self, other, n):
+        return is_diff_significant(self.average, self.stdev, n,
+                                   other.average, other.stdev, n)
 
     def __cmp__(self, other):
         if self.has_error and not other.has_error:
