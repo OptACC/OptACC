@@ -195,13 +195,21 @@ def load_testing_data(csv_filename):
     LOGGER.info('TEST MODE - Using timing data from CSV file %s', csv_filename)
     csv_data = {}
     with open(csv_filename) as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            key = Point(row['num_gangs'], row['vector_length'])
-            values = { 'time': float(row['time']),
-                       'stdev': float(row['stdev']),
-                       'error msg': row['error msg'] }
-            csv_data[key] = values
+        try:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                key = Point(row['num_gangs'], row['vector_length'])
+                values = { 'time': float(row['time']),
+                           'stdev': float(row['stdev']),
+                           'error msg': row['error msg'] }
+                csv_data[key] = values
+        except KeyError, e:
+            LOGGER.error('Invalid CSV file format: missing column %s', str(e))
+            sys.exit(1)
+        except ValueError, e:
+            LOGGER.error('Error in CSV file %s, line %d: %s',
+                  csv_filename, reader.line_num, e)
+            sys.exit(1)
     LOGGER.info('            Loaded %d data points', len(csv_data))
     return csv_data
 
