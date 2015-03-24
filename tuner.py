@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 
+from stats import anova_2factor_norep
 from result_writer import ResultFiles, ResultWriter
 from point import Point
 from utilities import call_command
@@ -49,6 +50,7 @@ class TuningOptions(object):
             executable='./a.out',
             compile_command=None, # None here implies use of default
             search_method='nelder-mead',
+            anova_heuristic=False,
             repetitions=10,
             time_regexp=TIME_RE,
             write_gnuplot=None,
@@ -71,6 +73,7 @@ class TuningOptions(object):
             self.compile_command = PGCC_COMPILE_KERNEL_TIMING
         else:
             self.compile_command = PGCC_COMPILE
+        self.anova_heuristic = anova_heuristic
         self.search_method = search_method
         self.repetitions = repetitions
         self.time_regexp = re.compile(time_regexp, re.I)
@@ -256,6 +259,36 @@ def gen_testing_function(csv_filename, output_writer):
         return result
     return fn, known_best
 
+# Uses a heuristic to guess whether tuning will be beneficial and sets the
+# minimum/maximum number of gangs and/or minimum/maximum vector length to a
+# fixed value if it will not.
+def run_heuristic(objective, opts):
+    # Splits [ a, b, c, d ] into  [ [a, b], [c, d] ]
+    def split(lst):
+        mid = len(lst) / 2
+        return [ lst[:mid], lst[mid:] ]
+
+    LOGGER.info('Running ANOVA heuristic...')
+    #                     num_gangs=256  num_gangs=1024
+    # vector_length=128         X              X
+    # vector_length=1024        X              X
+    points = [ Point(256, 128), Point(1024, 128),
+               Point(256, 1024), Point(256, 1024) ]
+    times = map(lambda result: result.average, map(objective, points))
+    matrix = split(times)  # Values across: increasing num_gangs
+    result = anova_2factor_norep(matrix)
+    tune_num_gangs, tune_vector_length = result
+    LOGGER.info('ANOVA Heuristic Result: %s', str(result))
+    LOGGER.info('  num_gangs needs tuning: %s', str(tune_num_gangs))
+    LOGGER.info('  vector_length needs tuning: %s', str(tune_vector_length))
+    if not tune_num_gangs:
+        opts.num_gangs_min = 256
+        opts.num_gangs_max = 256
+    if not tune_vector_length:
+        opts.vector_length_min = 256
+        opts.vector_length_max = 256
+    return result
+
 def tune(opts, output_writer):
     if opts.source is not None and opts.source.endswith(".csv"):
         run_test, known_best = gen_testing_function(opts.source, output_writer)
@@ -275,6 +308,9 @@ def tune(opts, output_writer):
     if opts.search_method not in METHODS:
         raise RuntimeError('Unknown search method "{0}"'.format(
                 opts.search_method))
+
+    if opts.anova_heuristic:
+        run_heuristic(objective, opts)
 
     res = METHODS[opts.search_method](objective, opts)
 
@@ -303,6 +339,9 @@ def main():
     parser.add_argument('source', type=str, nargs='?')
     parser.add_argument('-e', '--executable', type=str)
     parser.add_argument('-c', '--compile-command', type=str)
+    parser.add_argument('-a', '--anova-heuristic', action='store_true',
+            help='Uses a heuristic to avoid autotuning if it is unlikely to ' +
+                 'be beneficial')
     parser.add_argument('-s', '--search-method', type=str,
             choices=sorted(METHODS.keys()),
             help='Search method to use when choosing test points')
