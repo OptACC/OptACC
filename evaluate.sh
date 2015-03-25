@@ -41,6 +41,6 @@ for file in `find test_data -iname '*.csv'`; do
 done
 echo
 let total=pass+fail
-echo "No Significant Difference...........$pass of $total"
-echo "Significant Difference or Failure...$fail of $total"
+echo "No Significant Difference or Top 5%...$pass of $total"
+echo "Significant Difference or Failure.....$fail of $total"
 exit 0
