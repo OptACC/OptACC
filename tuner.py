@@ -228,13 +228,24 @@ def load_testing_data(csv_filename):
                                    average=csv_data[best]['time'],
                                    stdev=csv_data[best]['stdev'],
                                    error=csv_data[best]['error msg'])
-    return csv_data, known_best_result
+
+    def percentile(time):
+        n = len(sdata)
+        count = 0
+        for i in range(n):
+            if csv_data[sdata[i]]['time'] <= time:
+                count += 1
+            else:
+                break
+        return int(round(float(count) / n * 100))
+
+    return csv_data, known_best_result, percentile
 
 # From a set of tuning options, return a function that when called with a
 # num_gangs and vector_length will return a test result based on prior data
 # cached in a CSV file.
 def gen_testing_function(csv_filename, output_writer):
-    csv_data, known_best = load_testing_data(csv_filename)
+    csv_data, known_best, percentile = load_testing_data(csv_filename)
     def fn(x, repetitions=1):
         num_gangs, vector_length = map(int, x)
 
@@ -257,7 +268,7 @@ def gen_testing_function(csv_filename, output_writer):
 
         output_writer.add(result)
         return result
-    return fn, known_best
+    return fn, known_best, percentile
 
 # Uses a heuristic to guess whether tuning will be beneficial and sets the
 # minimum/maximum number of gangs and/or minimum/maximum vector length to a
@@ -290,10 +301,11 @@ def run_heuristic(objective, opts):
     return result
 
 def tune(opts, output_writer):
+    known_best = percentile = None
     if opts.source is not None and opts.source.endswith(".csv"):
-        run_test, known_best = gen_testing_function(opts.source, output_writer)
+        run_test, known_best, percentile = gen_testing_function(opts.source, output_writer)
     else:
-        run_test, known_best = gen_tuning_function(opts, output_writer), None
+        run_test = gen_tuning_function(opts, output_writer)
 
     def objective(x):
         out_of_range = TestResult(x, error='Point out of range')
@@ -322,12 +334,19 @@ def tune(opts, output_writer):
     LOGGER.info('Tested %d points', len(res.tests))
     LOGGER.info('Search took %d iterations', res.num_iterations)
     LOGGER.info('Best result found: %s', str(res.tests[res.optimal]))
-    if known_best is not None:
+    if known_best is not None and percentile is not None:
         LOGGER.info('Optimal result from test data: %s', str(known_best))
-        if known_best.is_signif_diff(res.tests[res.optimal], opts.repetitions):
-            LOGGER.warn('BEST RESULT FOUND DIFFERS FROM OPTIMAL RESULT')
-        else:
-            LOGGER.info('(No statistically significant difference)')
+        LOGGER.info('Percentile of best result: %d%%',
+            percentile(res.tests[res.optimal].average))
+        try:
+            if known_best.is_signif_diff(res.tests[res.optimal], opts.repetitions):
+                LOGGER.warn('BEST RESULT FOUND DIFFERS FROM OPTIMAL RESULT')
+            else:
+                LOGGER.info('(No statistically significant difference)')
+        except (ValueError, ZeroDivisionError), e:
+            # T-test will fail if standard deviation is 0 or number of points
+            # is 0.  It isn't important, so don't die.
+            LOGGER.warn('Unable to perform T-test (%s)', e)
 
     # Do this afterward, in case writing files fails
     output_writer.write_result(res, opts.repetitions)
