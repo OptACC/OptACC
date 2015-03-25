@@ -20,9 +20,9 @@ class TestResult(object):
 
     def __cmp__(self, other):
         if self.has_error and not other.has_error:
-            return -1
-        elif other.has_error and not self.has_error:
             return 1
+        elif other.has_error and not self.has_error:
+            return -1
 
         if abs(self.average - other.average) < EPSILON:
             if abs(self.stdev - other.stdev) < EPSILON:
