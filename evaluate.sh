@@ -17,6 +17,8 @@ echo "Evaluating $method..."
 echo
 pass=0
 fail=0
+total_points=0
+max_points_per_kernel=0
 for file in `find test_data -iname '*.csv'`; do
 	basename=`basename "$file"`
 	result=`./tuner.py -s "$method" "$file" 2>&1`
@@ -24,6 +26,7 @@ for file in `find test_data -iname '*.csv'`; do
 		echo "$result"
 		exit 1
 	fi
+	points=`echo "$result" | grep Tested | cut -c 22-`
 	differs=`echo "$result" | egrep 'DIFFERS|Unable' | cut -c 18-`
 	percentile=`echo "$result" | grep ercentile | cut -c 42- | cut -f 1 -d '%'`
 	if [ "$differs" ]; then
@@ -31,16 +34,24 @@ for file in `find test_data -iname '*.csv'`; do
 			echo "$basename: DIFFERS - Result in top $percentile%"
 			let fail+=1
 		else
-			#echo "$basename: OK - $percentile%"
+			#echo "$basename: OK - $percentile% - $points"
 			let pass+=1
 		fi
 	else
-		#echo "$basename: OK - $percentile%"
+		#echo "$basename: OK - $percentile% - $points"
 		let pass+=1
 	fi
+
+	let add=`echo "$points" | sed -e 's/ points//'`
+	if [ "$add" -gt "$max_points_per_kernel" ]; then
+		let max_points_per_kernel=add
+	fi
+	let total_points+=$add
 done
 echo
-let total=pass+fail
-echo "No Significant Difference or Top 5%...$pass of $total"
-echo "Significant Difference or Failure.....$fail of $total"
+let total_tests=pass+fail
+let avg=total_points/total_tests
+echo "$total_points points tested in total; average: $avg per kernel (max: $max_points_per_kernel)"
+echo "No Significant Difference or Top 5%...$pass of $total_tests"
+echo "Significant Difference or Failure.....$fail of $total_tests"
 exit 0
