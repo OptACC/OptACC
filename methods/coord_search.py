@@ -23,7 +23,7 @@ MAX_UNSUC = 2
 
 # Rounds to nearest power of 2
 def _round(x):
-    num_gangs = round(x[0] / 32.0) * 32.0
+    num_gangs = max(round(x[0] / 32.0) * 32.0, 1)
     #num_gangs = 2**round(math.log(x[0], 2)) if x[0] > 0 else 1
     vector_length = 2**round(math.log(x[1], 2)) if x[1] > 0 else 1
     return Point(num_gangs, vector_length)
