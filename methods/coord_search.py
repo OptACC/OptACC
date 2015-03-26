@@ -5,13 +5,18 @@ from point import Point
 
 DEFAULT_INITIAL_POINT = Point(256, 128)
 
-DEFAULT_INITIAL_STEP_SIZE = 256 #128
+DEFAULT_INITIAL_STEP_SIZE = 256
 
-#BASIS = [ Point(1,0), Point(0,1), Point(-1,0), Point(0,-1) ]
+# Also reasonably good:
+#BASIS = [ Point(1,0), Point(0,1), Point(-math.sqrt(2)/2,-math.sqrt(2)/2) ]
+#            sz /= 2
+
+# Not so good:
 #BASIS = [ Point(1,0), Point(0,1), Point(-1,-1) ]
-BASIS = [ Point(1,0), Point(0,1), Point(-math.sqrt(2)/2,-math.sqrt(2)/2) ]
 #BASIS = [ Point(-math.sqrt(2)/2,-math.sqrt(2)/2), Point(1,0), Point(0,1) ]
 #BASIS = [ Point(-math.sqrt(2)/2,-math.sqrt(2)/2), Point(0,1), Point(1,0) ]
+
+BASIS = [ Point(1,0), Point(0,1), Point(-1,0), Point(0,-1) ]
 
 MAX_UNSUC = 2
 
@@ -29,7 +34,7 @@ def _round(x):
     return Point(num_gangs, vector_length)
 
 def tune_coord_search(objective, opts, maxiter=100):
-    '''Optimizes an objective function using a coord search algorithm.'''
+    '''Optimizes an objective function using a coordinate search algorithm.'''
 
     pt = DEFAULT_INITIAL_POINT
     sz = DEFAULT_INITIAL_STEP_SIZE
@@ -42,6 +47,7 @@ def tune_coord_search(objective, opts, maxiter=100):
     consecutive_unsucc_iters = 0
     while iters < maxiter and consecutive_unsucc_iters < MAX_UNSUC and sz >= 32:
         iters += 1
+        print('  Iteration {0}: Point is {1}'.format(iters, pt))
         poll_successful = False
         for poll in [ _round(pt + sz*vec) for vec in BASIS ]:
             print('Polling {0}'.format(poll))
@@ -56,8 +62,8 @@ def tune_coord_search(objective, opts, maxiter=100):
             print('  Polling successful!')
         else:
             consecutive_unsucc_iters += 1
-            sz /= 2
-            print('  Polling unsucc; size is now {0}'.format(sz))
+            sz = sz * 3/4
+            print('  Polling unsuccessful; size is now {0}'.format(sz))
 
     best = sorted(times, key=lambda x: times[x])[0]
     return SearchResult(best, times, iters)
