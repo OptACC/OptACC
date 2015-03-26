@@ -354,35 +354,61 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Autotune an OpenACC program')
-    parser.add_argument('source', type=str, nargs='?')
-    parser.add_argument('-e', '--executable', type=str)
-    parser.add_argument('-c', '--compile-command', type=str)
+    parser.add_argument('source', type=str, nargs='?',
+            help='name of a source file to pass to the compile command',
+            metavar='filename')
+    parser.add_argument('-e', '--executable', type=str,
+            help='executable to run (default: ./a.out)',
+            metavar='filename')
+    parser.add_argument('-c', '--compile-command', type=str,
+            help='command line to compile an executable',
+            metavar='command')
     parser.add_argument('-a', '--use-heuristic', action='store_true',
-            help='Uses a heuristic to avoid autotuning if it is unlikely to ' +
+            help='use a heuristic to avoid autotuning if it is unlikely to ' +
                  'be beneficial')
     parser.add_argument('-s', '--search-method', type=str,
-            choices=sorted(METHODS.keys()),
-            help='Search method to use when choosing test points')
-    parser.add_argument('-r', '--repetitions', type=int)
-    parser.add_argument('-t', '--time-regexp', type=str)
-    parser.add_argument('-k', '--kernel-timing', action='store_true')
+            help='search method to use when choosing test points: ' +
+                 ', '.join(sorted(METHODS.keys())),
+            metavar='method')
+    parser.add_argument('-r', '--repetitions', type=int,
+            help='number of times to run the executable to collect timing info',
+            metavar='count')
+    parser.add_argument('-t', '--time-regexp', type=str,
+            help='regular expression to identify timing information in the ' +
+                 'output produced by the executable',
+            metavar='regexp')
+    parser.add_argument('-k', '--kernel-timing', action='store_true',
+            help='search the output for timing information produced when a ' +
+                 'program is compiled with "-ta=nvidia,time" using pgcc/pgf90')
     parser.add_argument('-l', '--logfile', type=str,
-            help='Write log messages to a file')
+            help='write log messages to a file',
+            metavar='filename.log')
     parser.add_argument('--write-gnuplot', type=str,
-            help='Generate a Gnuplot script to visualize the test results',
+            help='generate a Gnuplot script to visualize the test results',
             metavar='filename.gp')
     parser.add_argument('--write-csv', type=str,
-            help='Write results line by line to a CSV file',
+            help='write timing results line by line to a CSV file',
             metavar='filename.csv')
     parser.add_argument('--write-spreadsheet', type=str,
-            help='Write an Excel XML file containing results and statistics',
+            help='write an Excel XML spreadsheet with results and statistics',
             metavar='filename.xml')
-    parser.add_argument('--num-gangs-min', type=int)
-    parser.add_argument('--num-gangs-max', type=int)
-    parser.add_argument('--vector-length-min', type=int)
-    parser.add_argument('--vector-length-max', type=int)
-    parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('-x', '--ignore-exit', action='store_true')
+    parser.add_argument('--num-gangs-min', type=int,
+            help='minimum allowable value of num_gangs',
+            metavar='value')
+    parser.add_argument('--num-gangs-max', type=int,
+            help='maximum allowable value of num_gangs',
+            metavar='value')
+    parser.add_argument('--vector-length-min', type=int,
+            help='minimum allowable value of vector_length',
+            metavar='value')
+    parser.add_argument('--vector-length-max', type=int,
+            help='maximum allowable value of vector_length',
+            metavar='value')
+    parser.add_argument('-v', '--verbose', action='store_true',
+            help='display progress and diagnostic information while tuning')
+    parser.add_argument('-x', '--ignore-exit', action='store_true',
+            help='continue with autotuning even if the executable exits ' +
+                 'with a nonzero exit code')
 
     args = parser.parse_args()
 
