@@ -275,29 +275,26 @@ def gen_testing_function(csv_filename, output_writer):
 # fixed value if it will not.
 def run_heuristic(objective, opts):
     LOGGER.info('Running T-test heuristic...')
-    g1 = objective(Point(256, 128))
-    g2 = objective(Point(1024, 128))
-    v1 = objective(Point(256, 128))
-    v2 = objective(Point(256, 1024))
+    i = objective(Point(256, 128))
+    g = objective(Point(1024, 128))
+    v = objective(Point(256, 1024))
     n = opts.repetitions
 
-    if n == 1 or g1.stdev == 0 or g2.stdev == 0 or v1.stdev == 0 or v2.stdev == 0:
+    if n == 1 or i.stdev == 0 or g.stdev == 0 or v.stdev == 0:
         return (True, True)
 
-    tune_num_gangs = is_diff_significant(g1.average, g1.stdev, n,
-                                         g2.average, g2.stdev, n)
-    tune_vector_length = is_diff_significant(v1.average, v1.stdev, n,
-                                             v2.average, v2.stdev, n)
+    tune_num_gangs = is_diff_significant(i.average, i.stdev, n,
+                                         g.average, g.stdev, n)
+    tune_vector_length = is_diff_significant(i.average, i.stdev, n,
+                                             v.average, v.stdev, n)
     result = (tune_num_gangs, tune_vector_length)
     LOGGER.info('T-Test Heuristic Result: %s', str(result))
     LOGGER.info('  num_gangs needs tuning: %s', str(tune_num_gangs))
     LOGGER.info('  vector_length needs tuning: %s', str(tune_vector_length))
     if not tune_num_gangs:
-        opts.num_gangs_min = 256
-        opts.num_gangs_max = 256
+        opts.num_gangs_min = opts.num_gangs_max = int(i.point[0])
     if not tune_vector_length:
-        opts.vector_length_min = 256
-        opts.vector_length_max = 256
+        opts.vector_length_min = opts.vector_length_max = int(i.point[1])
     return result
 
 def tune(opts, output_writer):
