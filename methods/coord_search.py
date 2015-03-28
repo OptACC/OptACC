@@ -7,29 +7,21 @@ DEFAULT_INITIAL_POINT = Point(256, 128)
 
 DEFAULT_INITIAL_STEP_SIZE = 256
 
-# Also reasonably good:
-#BASIS = [ Point(1,0), Point(0,1), Point(-math.sqrt(2)/2,-math.sqrt(2)/2) ]
-#            sz /= 2
+BASIS = [ Point(1,0), Point(0,1), Point(0,-1), Point(-1,0) ]
 
-# Not so good:
-#BASIS = [ Point(1,0), Point(0,1), Point(-1,-1) ]
-#BASIS = [ Point(-math.sqrt(2)/2,-math.sqrt(2)/2), Point(1,0), Point(0,1) ]
-#BASIS = [ Point(-math.sqrt(2)/2,-math.sqrt(2)/2), Point(0,1), Point(1,0) ]
-
-BASIS = [ Point(1,0), Point(0,1), Point(-1,0), Point(0,-1) ]
-
+# If polling is unsuccessful for MAX_UNSUC consecutive iterations, the search
+# will terminate.
 MAX_UNSUC = 2
 
-# Rounds to nearest multiple of 32
-#def _round(x):
-#    num_gangs = max(round(x[0] / 32.0) * 32.0, 1)
-#    vector_length = max(round(x[1] / 32.0) * 32.0, 1)
-#    return Point(num_gangs, vector_length)
+# Using the basis
+# BASIS = [ Point(1,0), Point(0,1), Point(-math.sqrt(2)/2,-math.sqrt(2)/2) ]
+# and decreasing the size by half after unsuccessful polling
+#            sz /= 2
+# also worked reasonably well.
 
-# Rounds to nearest power of 2
+# Rounds num_gangs to a multiple of 32 and vector_length to a power of 2
 def _round(x):
     num_gangs = max(round(x[0] / 32.0) * 32.0, 1)
-    #num_gangs = 2**round(math.log(x[0], 2)) if x[0] > 0 else 1
     vector_length = 2**round(math.log(x[1], 2)) if x[1] > 0 else 1
     return Point(num_gangs, vector_length)
 
@@ -46,11 +38,23 @@ def tune_coord_search(objective, opts, maxiter=100):
     iters = 0
     consecutive_unsucc_iters = 0
     while iters < maxiter and consecutive_unsucc_iters < MAX_UNSUC and sz >= 32:
+        # "Polls" four new points around the current point, in this order:
+        #
+        #           (2) vector_length++
+        #                     |
+        #                     |
+        # (4) num_gangs-- ----O---- (1) num_gangs++
+        #                     |
+        #                     |
+        #           (3) vector_length--
+        #
+        # As soon as polling finds a better point, the current point is moved
+        # and the process repeats.  If polling is unsuccessful, the distance
+        # is decreased, and new points closer to the current point are polled
+        # on the next iteration.
         iters += 1
-        print('  Iteration {0}: Point is {1}'.format(iters, pt))
         poll_successful = False
         for poll in [ _round(pt + sz*vec) for vec in BASIS ]:
-            print('Polling {0}'.format(poll))
             result = objective(poll)
             times[poll] = result
             if result < times[pt]:
@@ -59,11 +63,9 @@ def tune_coord_search(objective, opts, maxiter=100):
                 break
         if poll_successful:
             consecutive_unsucc_iters = 0
-            print('  Polling successful!')
         else:
             consecutive_unsucc_iters += 1
             sz = sz * 3/4
-            print('  Polling unsuccessful; size is now {0}'.format(sz))
 
     best = sorted(times, key=lambda x: times[x])[0]
     return SearchResult(best, times, iters)
