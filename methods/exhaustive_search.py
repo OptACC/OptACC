@@ -59,3 +59,15 @@ def tune_exhaustive_128(objective, opts):
 
 def tune_exhaustive_256(objective, opts):
     return _tune_exhaustive(objective, opts, 256)
+
+def tune_exhaustive_32_vlpow2(objective, opts):
+    # Search multiples of 32 on num_gangs and powers of 2 on vector_length
+    def generator():
+        gmin = int(math.ceil(opts.num_gangs_min / 32.0))
+        gmax = opts.num_gangs_max / 32
+        vmin = int(math.ceil(math.log(opts.vector_length_min, 2)))
+        vmax = int(math.floor(math.log(opts.vector_length_max, 2)))
+        for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
+            for vec_pow2 in range(vmin, vmax+1):
+                yield Point(32 * gang_mult, 1 << vec_pow2)
+    return _exhaustive_search(objective, generator())

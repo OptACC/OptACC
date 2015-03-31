@@ -19,7 +19,8 @@ from testresult import TestResult
 from methods.nelder_mead import tune as tune_nelder_mead
 from methods.coord_search import tune_coord_search
 from methods.exhaustive_search import (tune_exhaustive_pow2, tune_exhaustive_32,
-        tune_exhaustive_64, tune_exhaustive_128, tune_exhaustive_256)
+        tune_exhaustive_64, tune_exhaustive_128, tune_exhaustive_256,
+        tune_exhaustive_32_vlpow2)
 
 METHODS = {
     'nelder-mead': tune_nelder_mead,
@@ -28,7 +29,8 @@ METHODS = {
     'exhaustive32': tune_exhaustive_32,
     'exhaustive64': tune_exhaustive_64,
     'exhaustive128': tune_exhaustive_128,
-    'exhaustive256': tune_exhaustive_256
+    'exhaustive256': tune_exhaustive_256,
+    'exhaustive32-vlpow2': tune_exhaustive_32_vlpow2
 }
 
 LOGGER = logging.getLogger('tuner')
