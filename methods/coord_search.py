@@ -19,7 +19,7 @@ MAX_UNSUC = 2
 # Using the basis
 # BASIS = [ Point(1,0), Point(0,1), Point(-math.sqrt(2)/2,-math.sqrt(2)/2) ]
 # and decreasing the size by half after unsuccessful polling
-#            sz /= 2
+#            SHRINK = 0.5
 # also worked reasonably well.
 
 # Rounds num_gangs to a multiple of 32 and vector_length to a power of 2
