@@ -9,6 +9,9 @@ DEFAULT_INITIAL_STEP_SIZE = 256
 
 BASIS = [ Point(1,0), Point(0,1), Point(0,-1), Point(-1,0) ]
 
+# Amount by which to shrink the step size when polling is unsuccessful
+SHRINK = 0.75
+
 # If polling is unsuccessful for MAX_UNSUC consecutive iterations, the search
 # will terminate.
 MAX_UNSUC = 2
@@ -38,7 +41,7 @@ def tune_coord_search(objective, opts, maxiter=100):
     iters = 0
     consecutive_unsucc_iters = 0
     while iters < maxiter and consecutive_unsucc_iters < MAX_UNSUC and sz >= 32:
-        # "Polls" four new points around the current point, in this order:
+        # Polls four new points around the current point, in this order:
         #
         #           (2) vector_length++
         #                     |
@@ -53,19 +56,18 @@ def tune_coord_search(objective, opts, maxiter=100):
         # is decreased, and new points closer to the current point are polled
         # on the next iteration.
         iters += 1
-        poll_successful = False
         for poll in [ _round(pt + sz*vec) for vec in BASIS ]:
-            result = objective(poll)
-            times[poll] = result
-            if result < times[pt]:
-                pt = poll
-                poll_successful = True
-                break
-        if poll_successful:
-            consecutive_unsucc_iters = 0
+            if poll not in times:
+                result = objective(poll)
+                times[poll] = result
+                if result < times[pt]:
+                    pt = poll
+                    poll_successful = True
+                    consecutive_unsucc_iters = 0
+                    break
         else:
             consecutive_unsucc_iters += 1
-            sz = sz * 3/4
+            sz = int(sz * SHRINK)
 
     best = sorted(times, key=lambda x: times[x])[0]
     return SearchResult(best, times, iters)
