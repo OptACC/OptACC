@@ -274,18 +274,16 @@ def gen_testing_function(csv_filename, output_writer):
         return result
     return fn, known_best, percentile
 
-# Uses a heuristic to guess whether tuning will be beneficial and sets the
-# minimum/maximum number of gangs and/or minimum/maximum vector length to a
-# fixed value if it will not.
+# Uses a heuristic to guess whether tuning will be beneficial
 def run_heuristic(objective, opts):
     LOGGER.info('Running T-test heuristic...')
     i = objective(Point(256, 128))
-    g = objective(Point(1024, 128))
-    v = objective(Point(256, 1024))
+    g = objective(Point(512, 128))
+    v = objective(Point(256, 512))
     n = opts.repetitions
 
     if n == 1 or i.stdev == 0 or g.stdev == 0 or v.stdev == 0:
-        return (True, True)
+        return True
 
     tune_num_gangs = is_diff_significant(i.average, i.stdev, n,
                                          g.average, g.stdev, n)
@@ -295,11 +293,7 @@ def run_heuristic(objective, opts):
     LOGGER.info('T-Test Heuristic Result: %s', str(result))
     LOGGER.info('  num_gangs needs tuning: %s', str(tune_num_gangs))
     LOGGER.info('  vector_length needs tuning: %s', str(tune_vector_length))
-    if not tune_num_gangs:
-        opts.num_gangs_min = opts.num_gangs_max = int(i.point[0])
-    if not tune_vector_length:
-        opts.vector_length_min = opts.vector_length_max = int(i.point[1])
-    return result
+    return tune_num_gangs or tune_vector_length
 
 def tune(opts, output_writer):
     known_best = percentile = None
@@ -322,8 +316,9 @@ def tune(opts, output_writer):
         raise RuntimeError('Unknown search method "{0}"'.format(
                 opts.search_method))
 
-    if opts.use_heuristic:
-        run_heuristic(objective, opts)
+    if opts.use_heuristic and run_heuristic(objective, opts) == False:
+        LOGGER.info('Heuristic suggests that autotuning is unnecessary')
+        sys.exit(3)
 
     res = METHODS[opts.search_method](objective, opts)
 
