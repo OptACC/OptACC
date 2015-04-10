@@ -1,4 +1,4 @@
-from stats import is_diff_significant
+from .stats import is_diff_significant
 
 EPSILON = 1e-7
 class TestResult(object):

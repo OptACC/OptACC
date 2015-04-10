@@ -1,7 +1,7 @@
 from __future__ import print_function
 import math
-from point import Point
-from searchresult import SearchResult
+from ..point import Point
+from ..searchresult import SearchResult
 
 DEFAULT_INITIAL_POINT = Point(256, 128)
 
