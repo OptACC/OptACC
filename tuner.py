@@ -11,7 +11,7 @@ LOGGER = logging.getLogger('tuner')
 def main():
     try:
         import argparse
-    except ImportError:
+    except ImportError as e:
         # Python 2.6 does not provide argparse in the standard library
         # so load a local copy (taken from Python 2.7)
         import argparseshim as argparse

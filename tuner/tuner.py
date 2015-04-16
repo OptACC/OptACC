@@ -152,6 +152,10 @@ def _load_testing_data(csv_filename):
         try:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                for key in ['num_gangs', 'vector_length', 'time', 'stdev']:
+                    if row[key] is None:
+                        raise KeyError(key)
+
                 key = Point(row['num_gangs'], row['vector_length'])
                 values = { 'time': float(row['time']),
                            'stdev': float(row['stdev']),

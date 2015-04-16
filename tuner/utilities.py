@@ -21,6 +21,7 @@ def call_command(cmd, env=None, fail_on_nonzero=False):
             shell=True)
 
     stdout, _ = handle.communicate()
+    stdout = stdout.decode('utf8')
 
     if handle.returncode != 0 and fail_on_nonzero:
         err = subprocess.CalledProcessError(handle.returncode, cmd)
