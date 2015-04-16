@@ -32,6 +32,18 @@ class TestResult(object):
         else:
             return 1 if self.average > other.average else -1
 
+    def __lt__(self, other):
+        return self.__cmp__(other) < 0
+
+    def __le__(self, other):
+        return self.__cmp__(other) <= 0
+
+    def __gt__(self, other):
+        return self.__cmp__(other) > 0
+
+    def __ge__(self, other):
+        return self.__cmp__(other) >= 0
+
     def __str__(self):
         if self.has_error:
             return ('num_gangs={0:<4.0f} vector_length={1:<4.0f} => error={2}'

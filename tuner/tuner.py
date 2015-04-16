@@ -10,9 +10,9 @@ from .point import Point
 from .utilities import call_command
 from .testresult import TestResult
 
-from methods.nelder_mead import tune as tune_nelder_mead
-from methods.coord_search import tune_coord_search
-from methods.exhaustive_search import (tune_exhaustive_pow2, tune_exhaustive_32,
+from .methods.nelder_mead import tune as tune_nelder_mead
+from .methods.coord_search import tune_coord_search
+from .methods.exhaustive_search import (tune_exhaustive_pow2, tune_exhaustive_32,
         tune_exhaustive_64, tune_exhaustive_128, tune_exhaustive_256,
         tune_exhaustive_32_vlpow2)
 
@@ -157,10 +157,10 @@ def _load_testing_data(csv_filename):
                            'stdev': float(row['stdev']),
                            'error msg': row['error msg'] }
                 csv_data[key] = values
-        except KeyError, e:
+        except KeyError as e:
             LOGGER.error('Invalid CSV file format: missing column %s', str(e))
             sys.exit(1)
-        except ValueError, e:
+        except ValueError as e:
             LOGGER.error('Error in CSV file %s, line %d: %s',
                   csv_filename, reader.line_num, e)
             sys.exit(1)
@@ -294,7 +294,7 @@ def tune(opts, output_writer):
                 LOGGER.warn('BEST RESULT FOUND DIFFERS FROM OPTIMAL RESULT')
             else:
                 LOGGER.info('(No statistically significant difference)')
-        except (ValueError, ZeroDivisionError), e:
+        except (ValueError, ZeroDivisionError) as e:
             # T-test will fail if standard deviation is 0 or number of points
             # is 0.  It isn't important, so don't die.
             LOGGER.warn('Unable to perform T-test (%s)', e)

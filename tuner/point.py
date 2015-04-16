@@ -58,6 +58,10 @@ class Point(object):
         else:
             raise ArgumentError('Only scalar division is allowed')
 
+    def __truediv__(self, other):
+        # Division has changed in Python 3
+        return self.__div__(other)
+
     def __radd__(self, other):
         return self.__add__(other)
 
