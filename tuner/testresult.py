@@ -1,4 +1,4 @@
-from stats import is_diff_significant
+from .stats import is_diff_significant
 
 EPSILON = 1e-7
 class TestResult(object):
@@ -31,6 +31,18 @@ class TestResult(object):
                 return 1 if self.stdev > other.stdev else -1
         else:
             return 1 if self.average > other.average else -1
+
+    def __lt__(self, other):
+        return self.__cmp__(other) < 0
+
+    def __le__(self, other):
+        return self.__cmp__(other) <= 0
+
+    def __gt__(self, other):
+        return self.__cmp__(other) > 0
+
+    def __ge__(self, other):
+        return self.__cmp__(other) >= 0
 
     def __str__(self):
         if self.has_error:

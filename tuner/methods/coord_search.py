@@ -1,7 +1,7 @@
 import math
-from searchresult import SearchResult
-from testresult import TestResult
-from point import Point
+from ..searchresult import SearchResult
+from ..testresult import TestResult
+from ..point import Point
 
 DEFAULT_INITIAL_POINT = Point(256, 128)
 

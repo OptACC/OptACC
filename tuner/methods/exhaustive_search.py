@@ -1,7 +1,7 @@
 import math
-from searchresult import SearchResult
-from testresult import TestResult
-from point import Point
+from ..searchresult import SearchResult
+from ..testresult import TestResult
+from ..point import Point
 
 def _exhaustive_search(objective, points):
     '''Optimizes an objective function using an exhaustive search.

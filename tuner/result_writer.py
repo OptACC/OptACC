@@ -37,7 +37,7 @@ class ResultWriter(object):
             self.csv_file.close()
 
     def _start_csv(self):
-        self.csv_file = open(self.data_files.csv, 'wb')
+        self.csv_file = open(self.data_files.csv, 'w')
         self.csv_writer = csv.writer(self.csv_file, delimiter=',',
             quotechar='"', quoting=csv.QUOTE_MINIMAL)
         self.csv_writer.writerow(['num_gangs', 'vector_length', 'time',
