@@ -4,7 +4,6 @@ import math
 import os
 import sys
 
-from .stats import is_diff_significant
 from .result_writer import ResultFiles, ResultWriter
 from .point import Point
 from .utilities import call_command
@@ -228,30 +227,6 @@ def _gen_csv_function(csv_filename, output_writer):
         return result
     return fn, known_best, percentile
 
-def _run_heuristic(objective, opts):
-    '''Uses a heuristic to guess whether tuning will be benefitial
-
-    Returns True if tuning is probably beneficial
-    '''
-    LOGGER.info('Running T-test heuristic...')
-    i = objective(Point(256, 128))
-    g = objective(Point(512, 128))
-    v = objective(Point(256, 512))
-    n = opts.repetitions
-
-    if n == 1 or i.stdev == 0 or g.stdev == 0 or v.stdev == 0:
-        return True
-
-    tune_num_gangs = is_diff_significant(i.average, i.stdev, n,
-                                         g.average, g.stdev, n)
-    tune_vector_length = is_diff_significant(i.average, i.stdev, n,
-                                             v.average, v.stdev, n)
-    result = (tune_num_gangs, tune_vector_length)
-    LOGGER.info('T-Test Heuristic Result: %s', str(result))
-    LOGGER.info('  num_gangs needs tuning: %s', str(tune_num_gangs))
-    LOGGER.info('  vector_length needs tuning: %s', str(tune_vector_length))
-    return tune_num_gangs or tune_vector_length
-
 def tune(opts, output_writer):
     '''Tunes an input program based on the TuningOptions provided'''
     known_best = percentile = None
@@ -274,10 +249,6 @@ def tune(opts, output_writer):
     if opts.search_method not in METHODS:
         raise RuntimeError('Unknown search method "{0}"'.format(
                 opts.search_method))
-
-    if opts.use_heuristic and _run_heuristic(objective, opts) == False:
-        LOGGER.info('Heuristic suggests that autotuning is unnecessary')
-        sys.exit(3)
 
     res = METHODS[opts.search_method](objective, opts)
 

@@ -26,9 +26,6 @@ def main():
     parser.add_argument('-c', '--compile-command', type=str,
             help='command line to compile an executable',
             metavar='command')
-    parser.add_argument('-a', '--use-heuristic', action='store_true',
-            help='use a heuristic to avoid autotuning if it is unlikely to ' +
-                 'be beneficial')
     parser.add_argument('-s', '--search-method', type=str,
             help='search method to use when choosing test points: ' +
                  ', '.join(sorted(tuner.METHODS.keys())),

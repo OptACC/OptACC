@@ -19,7 +19,6 @@ class TuningOptions(object):
             executable='./a.out',
             compile_command=None, # None here implies use of default
             search_method='nelder-mead',
-            use_heuristic=False,
             repetitions=10,
             time_regexp=TIME_RE,
             write_gnuplot=None,
@@ -42,7 +41,6 @@ class TuningOptions(object):
             self.compile_command = PGCC_COMPILE_KERNEL_TIMING
         else:
             self.compile_command = PGCC_COMPILE
-        self.use_heuristic = use_heuristic
         self.search_method = search_method
         self.repetitions = repetitions
         self.time_regexp = re.compile(time_regexp, re.I)
