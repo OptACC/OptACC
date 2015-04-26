@@ -96,8 +96,6 @@ optional arguments:
                         executable to run (default: ./a.out)
   -c command, --compile-command command
                         command line to compile an executable
-  -a, --use-heuristic   use a heuristic to avoid autotuning if it is unlikely
-                        to be beneficial
   -s method, --search-method method
                         search method to use when choosing test points: coord-
                         search, exhaustive-pow2, exhaustive128, exhaustive256,
