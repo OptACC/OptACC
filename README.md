@@ -55,8 +55,7 @@ information, it will make it easier to determine what is causing your issue.
 
 ## Requirements
 
-The tuner requires Python 2.6 or 2.7.  Python 3.x is currently not supported,
-but may be in the future.
+The tuner has been tested and works with Python 2.6, 2.7, and 3.4.
 
 ## Installation
 
