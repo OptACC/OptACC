@@ -36,7 +36,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 # Issue Reporting
 
 If you discover a bug or other issue with the tuner, please
-[open an issue](https://github.com/joverbey/tuner/issues/new) on GitHub.  Please
+[open an issue](https://github.com/OptACC/OptACC/issues/new) on GitHub.  Please
 provide the following information in your description of the issue:
 
   * Which version of Python are you using? (output of `python -c 'import sys;
@@ -61,10 +61,10 @@ The tuner has been tested and works with Python 2.6, 2.7, and 3.4.
 
 To install the tuner, simply clone this repository using `git`:
 
-    git clone https://github.com/joverbey/tuner
+    git clone https://github.com/OptACC/OptACC
 
 If you are unable to use `git`, you can also download a
-[zip file](https://github.com/joverbey/tuner/archive/master.zip) from GitHub.
+[zip file](https://github.com/OptACC/OptACC/archive/master.zip) from GitHub.
 
 ## Running
 
