@@ -2,6 +2,7 @@ import csv
 import logging
 import math
 import os
+import re
 import sys
 
 from .result_writer import ResultFiles, ResultWriter
