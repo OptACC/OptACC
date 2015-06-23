@@ -26,6 +26,10 @@ METHODS = {
     'exhaustive32-vlpow2': tune_exhaustive_32_vlpow2
 }
 
+KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
+        r'(?:[^\n]*\n){2}'
+        r'\s*time\(us\): ([\d,]+)')
+
 LOGGER = logging.getLogger('tuner')
 
 def _gen_tuning_function(opts, output_writer):

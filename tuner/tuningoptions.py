@@ -8,9 +8,6 @@ PGCC_COMPILE_KERNEL_TIMING = ('pgcc -acc -DNUM_GANGS={num_gangs} '
 
 # Default regular expression matching the time output
 TIME_RE = r'(?:time)[=:\s]*([\d.]+)'
-KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
-        r'(?:[^\n]*\n){2}'
-        r'\s*time\(us\): ([\d,]+)')
 
 class TuningOptions(object):
     ''' Represents a set of options and constraints for tuning '''
