@@ -1,0 +1,7 @@
+*.csv
+*.dat
+*.gp
+*.log
+*.xml
+a.out
+custom.out
