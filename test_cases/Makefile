@@ -30,11 +30,11 @@ test_basic:
 
 test_compilefail:
 	@echo "$(RED)Testing simple-compilefail.c (should fail)$(RESET)"
-	$(PYTHON) ../tuner.py -v -r 3 simple-compilefail.c | grep 'error=Compile command failed'
+	$(PYTHON) ../tuner.py -v -r 3 simple-compilefail.c 2>&1 | grep 'error=Compile command failed'
 
 test_nonzero:
 	@echo "$(RED)Testing simple-nonzero.c (should fail)$(RESET)"
-	$(PYTHON) ../tuner.py -v -r 3 simple-nonzero.c | grep 'error=Executable failed'
+	$(PYTHON) ../tuner.py -v -r 3 simple-nonzero.c 2>&1 | grep 'error=Executable failed'
 
 test_nonzero_ok:
 	@echo "$(RED)Testing simple-nonzero.c with -x$(RESET)"
@@ -42,7 +42,7 @@ test_nonzero_ok:
 
 test_notime:
 	@echo "$(RED)Testing simple-notime.c (should fail)$(RESET)"
-	$(PYTHON) ../tuner.py -v -r 3 simple-notime.c | grep 'error=Timing data missing'
+	$(PYTHON) ../tuner.py -v -r 3 simple-notime.c 2>&1 | grep 'error=Timing data missing'
 
 test_kernel_timing:
 	@echo "$(RED)Testing simple-notime.c with kernel timing$(RESET)"
@@ -103,4 +103,5 @@ test_output:
 		-l simple-nostdev.log \
 		--write-gnuplot simple-nostdev.gp \
 		--write-spreadsheet simple-nostdev.xml \
+		simple.c
 	@echo "$(RED)Please manually check the .gp and .xml output files.$(RESET)"
