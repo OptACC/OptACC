@@ -5,6 +5,9 @@
 # Path to the python interpreter (change to customize)
 PYTHON=python
 
+RED=`tput setaf 1`
+RESET=`tput sgr 0`
+
 all:
 	@echo "Run 'make test' to run a suite of tests for OptACC."
 	@echo "The tests assume pgcc is on the PATH."
@@ -22,31 +25,31 @@ test: \
 	test_output
 
 test_basic:
-	@echo "$(tput setaf 1)Testing simple.c, default search method, -r 3$(tput sgr 0)"
+	@echo "$(RED)Testing simple.c, default search method, -r 3$(RESET)"
 	$(PYTHON) ../tuner.py -v -r 3 simple.c
 
 test_compilefail:
-	@echo "$(tput setaf 1)Testing simple-compilefail.c (should fail)$(tput sgr 0)"
+	@echo "$(RED)Testing simple-compilefail.c (should fail)$(RESET)"
 	$(PYTHON) ../tuner.py -v -r 3 simple-compilefail.c | grep 'error=Compile command failed'
 
 test_nonzero:
-	@echo "$(tput setaf 1)Testing simple-nonzero.c (should fail)$(tput sgr 0)"
+	@echo "$(RED)Testing simple-nonzero.c (should fail)$(RESET)"
 	$(PYTHON) ../tuner.py -v -r 3 simple-nonzero.c | grep 'error=Executable failed'
 
 test_nonzero_ok:
-	@echo "$(tput setaf 1)Testing simple-nonzero.c with -x$(tput sgr 0)"
+	@echo "$(RED)Testing simple-nonzero.c with -x$(RESET)"
 	$(PYTHON) ../tuner.py -v -x -r 3 simple-nonzero.c
 
 test_notime:
-	@echo "$(tput setaf 1)Testing simple-notime.c (should fail)$(tput sgr 0)"
+	@echo "$(RED)Testing simple-notime.c (should fail)$(RESET)"
 	$(PYTHON) ../tuner.py -v -r 3 simple-notime.c | grep 'error=Timing data missing'
 
 test_kernel_timing:
-	@echo "$(tput setaf 1)Testing simple-notime.c with kernel timing$(tput sgr 0)"
+	@echo "$(RED)Testing simple-notime.c with kernel timing$(RESET)"
 	$(PYTHON) ../tuner.py -v -k -r 3 simple-notime.c
 
 test_custom:
-	@echo "$(tput setaf 1)Testing custom compilation command and executable$(tput sgr 0)"
+	@echo "$(RED)Testing custom compilation command and executable$(RESET)"
 	$(PYTHON) ../tuner.py \
 		--num-gangs-min 32 --num-gangs-max 32 \
 		--vector-length-min 32 --vector-length-max 32 \
@@ -56,7 +59,7 @@ test_custom:
 		simple.c ; rm -f custom.out
 
 test_fromfile:
-	@echo "$(tput setaf 1)Testing simple.c, saving and loading CSV file$(tput sgr 0)"
+	@echo "$(RED)Testing simple.c, saving and loading CSV file$(RESET)"
 	rm -f simple.csv
 	$(PYTHON) ../tuner.py \
 		--num-gangs-min 32 --num-gangs-max 128 \
@@ -81,7 +84,7 @@ test_methods:
 	done
 
 test_output:
-	@echo "$(tput setaf 1)Testing output files$(tput sgr 0)"
+	@echo "$(RED)Testing output files$(RESET)"
 	rm -f simple*.{gp,dat,xml,log}
 	for file in simple simple-nonzero; do \
 		$(PYTHON) ../tuner.py \
@@ -100,4 +103,4 @@ test_output:
 		-l simple-nostdev.log \
 		--write-gnuplot simple-nostdev.gp \
 		--write-spreadsheet simple-nostdev.xml \
-	@echo "$(tput setaf 1)Please manually check the .gp and .xml output files.$(tput sgr 0)"
+	@echo "$(RED)Please manually check the .gp and .xml output files.$(RESET)"
