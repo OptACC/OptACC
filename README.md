@@ -97,9 +97,8 @@ optional arguments:
                         command line to compile an executable
   -s method, --search-method method
                         search method to use when choosing test points: coord-
-                        search, exhaustive-pow2, exhaustive128, exhaustive256,
-                        exhaustive32, exhaustive32-vlpow2, exhaustive64,
-                        nelder-mead
+                        search, grid-pow2, grid128, grid256, grid32,
+                        grid32-vlpow2, grid64, nelder-mead
   -r count, --repetitions count
                         number of times to run the executable to collect
                         timing info
@@ -298,20 +297,20 @@ Name  | Description  | # Points Tested
 ----- | ------------ | ---------------
 nelder-mead | Nelder-Mead direct search method | 7 (average)
 coord-search | Coordinate search (another direct search method) | 11 (average)
-exhaustive32 | Exhaustively try every multiple of 32 | 1024
-exhaustive64 | Exhaustively try every multiple of 64 | 256
-exhaustive128 | Exhaustively try every multiple of 128 | 64
-exhaustive-pow2 | Exhaustively try every power of 2 | 100
-exhaustive32-vlpow2 | Exhaustively try multiples of 32 for num\_gangs and powers of 2 for vector\_length | 320
+grid32 | Exhaustively try every multiple of 32 | 1024
+grid64 | Exhaustively try every multiple of 64 | 256
+grid128 | Exhaustively try every multiple of 128 | 64
+grid-pow2 | Exhaustively try every power of 2 | 100
+grid32-vlpow2 | Exhaustively try multiples of 32 for num\_gangs and powers of 2 for vector\_length | 320
 
-Methods beginning with `exhaustive` are exhaustive methods-- they test all
-points on certain intervals with no heuristic.  `nelder-mead` and `coord-search`
-are direct search algorithms aimed at finding locally optimal values while
-testing relatively few points.
+Methods beginning with `grid` perform a grid search, also called a parameter
+sweep: they exhaustively test all values within a particular range.  In
+contrast, `nelder-mead` and `coord-search` are direct search methods aimed at
+finding locally optimal values while testing relatively few points.
 
 Examples:
 
-    python tuner.py -s exhaustive32 example.c
+    python tuner.py -s grid32 example.c
     python tuner.py -s coord-search example.c
 
 ## Logging and data reporting

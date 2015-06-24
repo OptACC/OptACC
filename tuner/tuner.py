@@ -12,19 +12,19 @@ from .testresult import TestResult
 
 from .methods.nelder_mead import tune as tune_nelder_mead
 from .methods.coord_search import tune_coord_search
-from .methods.exhaustive_search import (tune_exhaustive_pow2, tune_exhaustive_32,
-        tune_exhaustive_64, tune_exhaustive_128, tune_exhaustive_256,
-        tune_exhaustive_32_vlpow2)
+from .methods.grid_search import (tune_grid_pow2, tune_grid_32,
+        tune_grid_64, tune_grid_128, tune_grid_256,
+        tune_grid_32_vlpow2)
 
 METHODS = {
     'nelder-mead': tune_nelder_mead,
     'coord-search': tune_coord_search,
-    'exhaustive-pow2': tune_exhaustive_pow2,
-    'exhaustive32': tune_exhaustive_32,
-    'exhaustive64': tune_exhaustive_64,
-    'exhaustive128': tune_exhaustive_128,
-    'exhaustive256': tune_exhaustive_256,
-    'exhaustive32-vlpow2': tune_exhaustive_32_vlpow2
+    'grid-pow2': tune_grid_pow2,
+    'grid32': tune_grid_32,
+    'grid64': tune_grid_64,
+    'grid128': tune_grid_128,
+    'grid256': tune_grid_256,
+    'grid32-vlpow2': tune_grid_32_vlpow2
 }
 
 KERNEL_TIMING_RE = re.compile(r'Accelerator Kernel Timing data\n'
