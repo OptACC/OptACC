@@ -2,7 +2,9 @@
 # and search methods.  This is not a complete test suite but rather is intended
 # for sanity checking.
 
-# Path to the python interpreter (change to customize)
+# Path to the python interpreter
+# To override this on the command line, instead of "make test", use:
+#     make PYTHON=/path/to/python test
 PYTHON=python
 
 RED=`tput setaf 1`
@@ -11,6 +13,9 @@ RESET=`tput sgr 0`
 all:
 	@echo "Run 'make test' to run a suite of tests for OptACC."
 	@echo "The tests assume pgcc is on the PATH."
+
+clean:
+	rm -f *.{gp,dat,xml,csv,log,eps,out}
 
 test: \
 	test_basic \
@@ -62,25 +67,31 @@ test_fromfile:
 	@echo "$(RED)Testing simple.c, saving and loading CSV file$(RESET)"
 	rm -f simple.csv
 	$(PYTHON) ../tuner.py \
-		--num-gangs-min 32 --num-gangs-max 128 \
-		--vector-length-min 32 --vector-length-max 128 \
+		--num-gangs-min 128 --num-gangs-max 256 \
+		--vector-length-min 128 --vector-length-max 256 \
 		-s grid32 -v -r 2 \
 		--write-csv simple.csv \
 		simple.c
 	$(PYTHON) ../tuner.py \
-		--num-gangs-min 32 --num-gangs-max 128 \
-		--vector-length-min 32 --vector-length-max 128 \
+		--num-gangs-min 128 --num-gangs-max 256 \
+		--vector-length-min 128 --vector-length-max 256 \
+		-s nelder-mead -v \
+		simple.csv
+	$(PYTHON) ../tuner.py \
+		--num-gangs-min 128 --num-gangs-max 256 \
+		--vector-length-min 128 --vector-length-max 256 \
 		-s coord-search -v \
 		simple.csv
 
 test_methods:
 	for method in coord-search grid-pow2 grid128 grid256 grid32 grid32-vlpow2 grid64 nelder-mead; \
 	do \
+		echo "$(RED)Testing $$method$(RESET)"; \
 		$(PYTHON) ../tuner.py \
-			--num-gangs-min 256 --num-gangs-max 512 \
-			--vector-length-min 256 --vector-length-max 512 \
+			--num-gangs-min 128 --num-gangs-max 256 \
+			--vector-length-min 128 --vector-length-max 256 \
 			-s $$method -v -r 1 \
-			simple.c;
+			simple.c; \
 	done
 
 test_output:

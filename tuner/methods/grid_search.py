@@ -38,9 +38,9 @@ def _tune_grid(objective, opts, mul):
     # Exhaustive search: search multiples of mul within gang/vector ranges
     def generator():
         gmin = int(math.ceil(opts.num_gangs_min / float(mul)))
-        gmax = opts.num_gangs_max / mul
+        gmax = int(opts.num_gangs_max / mul)
         vmin = int(math.ceil(opts.vector_length_min / float(mul)))
-        vmax = opts.vector_length_max / mul
+        vmax = int(opts.vector_length_max / mul)
         for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
             for vec_mult in range(vmin, vmax+1):
                 num_gangs = max(mul * gang_mult, 1)    # max(_, 1) ensures
@@ -64,7 +64,7 @@ def tune_grid_32_vlpow2(objective, opts):
     # Search multiples of 32 on num_gangs and powers of 2 on vector_length
     def generator():
         gmin = int(math.ceil(opts.num_gangs_min / 32.0))
-        gmax = opts.num_gangs_max / 32
+        gmax = int(opts.num_gangs_max / 32)
         vmin = int(math.ceil(math.log(opts.vector_length_min, 2)))
         vmax = int(math.floor(math.log(opts.vector_length_max, 2)))
         for gang_mult in range(gmin, gmax+1): # +1 since range is exclusive
