@@ -110,7 +110,7 @@ def main():
         file_log.setFormatter(formatter)
         LOGGER.addHandler(file_log)
 
-    LOGGER.debug('TuningOptions: %s', t.__dict__)
+    # LOGGER.debug('TuningOptions: %s', t.__dict__)
 
     # Set up output data files
     with tuner.ResultWriter(tuner.ResultFiles(args.write_gnuplot,

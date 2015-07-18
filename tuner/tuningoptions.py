@@ -1,7 +1,7 @@
 import re
 
 # Default compilation command
-PGCC_COMPILE = ('pgcc -acc -DNUM_GANGS={num_gangs} '
+PGCC_COMPILE = ('pgcc -acc -ta=nvidia -DNUM_GANGS={num_gangs} '
                 '-DVECTOR_LENGTH={vector_length} {source}')
 PGCC_COMPILE_KERNEL_TIMING = ('pgcc -acc -DNUM_GANGS={num_gangs} '
                 '-DVECTOR_LENGTH={vector_length} -ta=nvidia,time {source}')
